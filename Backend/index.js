@@ -1,14 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectDB } from './src/config/db.js';
+import authRoutes from './src/routes/auth.routes.js';
+import postRoutes from './src/routes/post.routes.js';
+import authApiRoutes from './src/routes/auth.api.routes.js';
 
 dotenv.config();
+
+// Connect to Database
+connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/auth', authRoutes); // Social Auth
+app.use('/auth', authApiRoutes);  // User Auth (Login/Signup)
+app.use('/api/posts', postRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend is running!');

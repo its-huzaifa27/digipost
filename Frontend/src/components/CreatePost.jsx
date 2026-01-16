@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Card } from "../ui/Card";
+import { SocialAccountList } from "./features/create-post/SocialAccountList";
+import { MediaUploader } from "./features/create-post/MediaUploader";
 
 export function CreatePost() {
     const [caption, setCaption] = useState("");
     const [hashtags, setHashtags] = useState("");
     const [media, setMedia] = useState(null);
-    const [isDragging, setIsDragging] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
 
@@ -52,42 +56,83 @@ export function CreatePost() {
         },
     ]);
 
-    const handleConnectAccount = (accountId) => {
-        // Get environment variables or use placeholders
-        const FACEBOOK_CLIENT_ID = import.meta.env.VITE_FACEBOOK_CLIENT_ID || 'YOUR_FACEBOOK_APP_ID';
-        const INSTAGRAM_CLIENT_ID = import.meta.env.VITE_INSTAGRAM_CLIENT_ID || 'YOUR_INSTAGRAM_CLIENT_ID';
-        const LINKEDIN_CLIENT_ID = import.meta.env.VITE_LINKEDIN_CLIENT_ID || 'YOUR_LINKEDIN_CLIENT_ID';
-        const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || window.location.origin + '/auth/callback';
+    const handleConnectAccount = async (accountId) => {
+        try {
+            // Securely get the OAuth URL from the backend
+            // Defaulting to localhost:5000 if VITE_API_URL is not set
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const response = await fetch(`${API_URL}/api/auth/connect/${accountId}`);
 
-        // ye Redirect hoga official social media connection page pe and user ko login krna hoga 
-        const authUrls = {
-            'instagram': `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=user_profile,user_media&response_type=code`,
-            'facebook': `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=pages_manage_posts,publish_video,pages_read_engagement&response_type=code`,
-            'twitter': 'https://twitter.com/i/flow/login',
-            'linkedin': `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=w_member_social`,
-        };
+            if (!response.ok) {
+                throw new Error('Failed to get auth URL');
+            }
 
-        const url = authUrls[accountId];
-        if (url) {
-            // blank isliye ke new window open ho for OAuth flow
-            window.open(url, '_blank', 'width=600,height=700');
+            const data = await response.json();
+
+            if (data.url) {
+                window.open(data.url, '_blank', 'width=600,height=700');
+            } else {
+                console.error("No URL returned from backend");
+            }
+
+        } catch (error) {
+            console.error("Error connecting account:", error);
+            alert("Failed to initiate connection. Please check backend.");
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleDisconnectAccount = (accountId) => {
+        setSocialAccounts(prev =>
+            prev.map(acc =>
+                acc.id === accountId
+                    ? { ...acc, connected: false, username: null }
+                    : acc
+            )
+        );
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Simulate posting
+        // Simulate posting with backend integration
         if (caption && media) {
-            setShowSuccess(true);
-            setShowError(false);
-            // Reset form after 3 seconds
-            setTimeout(() => {
+            try {
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+                // Note: For real file uploads, we would use FormData. 
+                // For this secure logic demo, we are sending metadata to verify the protected API call.
+                const response = await fetch(`${API_URL}/api/posts/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        caption,
+                        hashtags,
+                        mediaName: media.name, // Sending metadata only for now
+                        platforms: socialAccounts.filter(a => a.connected).map(a => a.id)
+                    })
+                });
+
+                if (response.ok) {
+                    setShowSuccess(true);
+                    setShowError(false);
+                    // Reset form after 3 seconds
+                    setTimeout(() => {
+                        setShowSuccess(false);
+                        setCaption("");
+                        setHashtags("");
+                        setMedia(null);
+                    }, 3000);
+                } else {
+                    throw new Error('Backend rejected post');
+                }
+            } catch (error) {
+                console.error("Post creation failed:", error);
+                setShowError(true);
                 setShowSuccess(false);
-                setCaption("");
-                setHashtags("");
-                setMedia(null);
-            }, 3000);
+                setTimeout(() => setShowError(false), 3000);
+            }
         } else {
             setShowError(true);
             setShowSuccess(false);
@@ -95,34 +140,9 @@ export function CreatePost() {
         }
     };
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-    };
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            setMedia(files[0]);
-        }
-    };
-
-    const handleFileChange = (e) => {
-        if (e.target.files.length > 0) {
-            setMedia(e.target.files[0]);
-        }
-    };
-
     return (
         <section className="bg-[#f3f4f6] min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-xl bg-white rounded-lg shadow-lg">
+            <Card className="w-full max-w-xl">
                 {/* Header */}
                 <div className="border-b border-gray-200 px-8 py-4">
                     <h1 className="text-2xl font-bold text-gray-900 text-center">
@@ -147,198 +167,39 @@ export function CreatePost() {
                     </div>
 
                     {/* Hashtags Field */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">
-                            Hashtags:
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="#hashtags (e.g. #socialmedia #marketing)"
-                            value={hashtags}
-                            onChange={(e) => setHashtags(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400"
-                        />
-                    </div>
+                    <Input
+                        label="Hashtags:"
+                        placeholder="#hashtags (e.g. #socialmedia #marketing)"
+                        value={hashtags}
+                        onChange={(e) => setHashtags(e.target.value)}
+                    />
 
                     {/* Upload Media */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">
-                            Upload Media:
-                        </label>
-                        <div
-                            onDragOver={handleDragOver}
-                            onDragLeave={handleDragLeave}
-                            onDrop={handleDrop}
-                            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-300 bg-gray-50"
-                                }`}
-                        >
-                            <div className="flex flex-col items-center justify-center space-y-3">
-                                {/* Icon */}
-                                <svg
-                                    className="w-12 h-12 text-gray-400"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                    />
-                                </svg>
-
-                                <div>
-                                    <span className="text-gray-600">Drag & drop or </span>
-                                    <label className="text-blue-600 font-semibold cursor-pointer hover:text-blue-700">
-                                        Browse
-                                        <input
-                                            type="file"
-                                            onChange={handleFileChange}
-                                            accept="image/*,video/*"
-                                            className="hidden"
-                                        />
-                                    </label>
-                                </div>
-
-                                <p className="text-sm text-gray-500">Image or Video file</p>
-
-                                {media && (
-                                    <p className="text-sm text-green-600 font-medium mt-2">
-                                        ✓ {media.name}
-                                    </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    <MediaUploader
+                        media={media}
+                        onFileChange={setMedia}
+                        onDrop={setMedia}
+                    />
 
                     {/* Social Media Connectivity Section */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-3">
-                            Manage Connected Accounts:
-                        </label>
-                        <div className="space-y-3">
-                            {socialAccounts.map((account) => (
-                                <div
-                                    key={account.id}
-                                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-                                >
-                                    <div className="flex items-center space-x-3">
-                                        {/* Platform Icon */}
-                                        <div className={`w-10 h-10 bg-gradient-to-tr ${account.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                                {account.icon}
-                                            </svg>
-                                        </div>
-
-                                        {/* Platform Info */}
-                                        <div>
-                                            <h3 className="text-sm font-semibold text-gray-900">
-                                                {account.name}
-                                            </h3>
-                                            {account.connected ? (
-                                                <p className="text-xs text-green-600 font-medium flex items-center">
-                                                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Connected • {account.username}
-                                                </p>
-                                            ) : (
-                                                <p className="text-xs text-gray-500">
-                                                    Not connected
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Connect/Disconnect Button */}
-                                    {account.connected ? (
-                                        <button
-                                            type="button"
-                                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                                            onClick={() => {
-                                                // Handle disconnect
-                                                setSocialAccounts(prev =>
-                                                    prev.map(acc =>
-                                                        acc.id === account.id
-                                                            ? { ...acc, connected: false, username: null }
-                                                            : acc
-                                                    )
-                                                );
-                                            }}
-                                        >
-                                            Disconnect
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                                            onClick={() => handleConnectAccount(account.id)}
-                                        >
-                                            Connect
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Select Platforms to Post */}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-3">
-                            Select Platforms to Post:
-                        </label>
-                        <div className="space-y-2">
-                            {socialAccounts
-                                .filter(account => account.connected)
-                                .map((account) => (
-                                    <div key={account.id} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
-                                        <input
-                                            type="checkbox"
-                                            id={`post-${account.id}`}
-                                            defaultChecked={account.id === 'instagram'}
-                                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                        />
-                                        <label htmlFor={`post-${account.id}`} className="flex items-center cursor-pointer flex-1">
-                                            <div className={`w-8 h-8 bg-gradient-to-tr ${account.color} rounded-lg flex items-center justify-center mr-3`}>
-                                                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                                    {account.icon}
-                                                </svg>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-900 font-medium text-sm">{account.name}</span>
-                                                <p className="text-xs text-gray-500">{account.username}</p>
-                                            </div>
-                                        </label>
-                                    </div>
-                                ))}
-                            {socialAccounts.filter(account => account.connected).length === 0 && (
-                                <p className="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-lg">
-                                    No connected accounts. Please connect at least one account above to post.
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                    <SocialAccountList
+                        accounts={socialAccounts}
+                        onConnect={handleConnectAccount}
+                        onDisconnect={handleDisconnectAccount}
+                    />
 
                     {/* Post Button */}
-                    <button
+                    <Button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        className="w-full"
+                        size="lg"
                     >
                         Post
-                    </button>
+                    </Button>
 
                     {/* Success Message */}
                     {showSuccess && (
                         <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg p-4">
-                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
                             <span className="text-green-800 font-medium">Posted Successfully to Selected Platforms!</span>
                         </div>
                     )}
@@ -346,17 +207,11 @@ export function CreatePost() {
                     {/* Error Message */}
                     {showError && (
                         <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4">
-                            <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            <svg className="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
                             <span className="text-red-800 font-medium">Failed to Post. Please fill in all required fields.</span>
                         </div>
                     )}
                 </form>
-            </div>
+            </Card>
         </section>
     );
 }

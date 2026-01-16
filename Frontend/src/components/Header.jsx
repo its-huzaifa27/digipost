@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const ChevronDown = () => (
     <svg
@@ -25,8 +26,10 @@ export function Header() {
                 <div className="flex justify-between items-center h-20">
 
                     {/* Logo Section */}
-                    <div className="flex-shrink-0 flex items-center cursor-pointer">
-                        <img src="https://placehold.co/120x40?text=Logo" alt="Logo" className="h-10" />
+                    <div className="flex items-center shrink-0 cursor-pointer">
+                        <Link to="/">
+                            <img src="https://placehold.co/120x40?text=Logo" alt="Logo" className="h-10" />
+                        </Link>
                     </div>
 
                     {/* Desktop Navigation */}
@@ -48,12 +51,16 @@ export function Header() {
 
                     {/* CTA Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
-                        <button className="text-lg font-semibold text-gray-700 hover:text-blue-600 px-4 py-2 transition-colors">
-                            Log in
-                        </button>
-                        <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                            Get started for free
-                        </button>
+                        <Link to="/login">
+                            <button className="text-lg font-semibold text-gray-700 hover:text-blue-600 px-4 py-2 transition-colors">
+                                Log in
+                            </button>
+                        </Link>
+                        <Link to="/signup">
+                            <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
+                                Get started for free
+                            </button>
+                        </Link>
                     </div>
 
                     {/* Mobile Menu Button (Hamburger) */}
@@ -88,12 +95,16 @@ export function Header() {
                             </a>
                         ))}
                         <div className="pt-4 space-y-3">
-                            <button className="w-full text-center text-lg font-semibold text-gray-700 hover:text-blue-600 py-3 transition-colors">
-                                Log in
-                            </button>
-                            <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
-                                Get started for free
-                            </button>
+                            <Link to="/login" className="w-full">
+                                <button className="w-full text-center text-lg font-semibold text-gray-700 hover:text-blue-600 py-3 transition-colors">
+                                    Log in
+                                </button>
+                            </Link>
+                            <Link to="/signup" className="w-full">
+                                <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
+                                    Get started for free
+                                </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
