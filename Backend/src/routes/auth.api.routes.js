@@ -1,9 +1,10 @@
 import express from 'express';
 import { signup, login } from '../controllers/auth.api.controller.js';
+import { validateSignup, validateLogin } from '../middleware/auth.validator.js';
 
 const router = express.Router();
 
-router.post('/signup', signup);
-router.post('/login', login);
+router.post('/signup', validateSignup, signup);
+router.post('/login', validateLogin, login);
 
 export default router;

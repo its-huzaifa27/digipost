@@ -6,7 +6,9 @@ export function DashboardLayout({ children }) {
         <div className="flex min-h-screen bg-gray-50 font-sans">
             <Sidebar />
             <main className="flex-1 ml-64 flex flex-col min-w-0">
-                {children}
+                <div className="w-full max-w-[1600px] mx-auto">
+                    {children}
+                </div>
             </main>
         </div>
     );
