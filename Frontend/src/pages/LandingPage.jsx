@@ -1,6 +1,6 @@
 import React from 'react';
 import { Community } from '../components/Community';
-import AnimationCounter from '../components/AnimationCounter';
+import { StatsSection } from '../components/StatsSection';
 import { HeroSection } from '../components/features/landing/HeroSection';
 
 export function LandingPage() {
@@ -8,7 +8,7 @@ export function LandingPage() {
         <>
             <HeroSection />
             <Community />
-            <AnimationCounter />
+            <StatsSection />
         </>
     )
 }
