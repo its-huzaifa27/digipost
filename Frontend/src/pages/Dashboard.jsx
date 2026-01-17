@@ -63,7 +63,7 @@ export function Dashboard() {
                 onSelectClient={setSelectedClientId}
             />
 
-            <div className="p-6 space-y-8 overflow-y-auto pb-20">
+            <div className="p-4 space-y-6 overflow-y-auto pb-20">
                 {/* Welcome & Context */}
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Good Morning, Admin</h1>
@@ -71,7 +71,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard
                         title="Total Posts"
                         value={stats.totalPosts}
@@ -103,7 +103,7 @@ export function Dashboard() {
                 </div>
 
                 {/* Main Content Area: Chart + Quick Actions */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 h-[400px]">
                         <EngagementChart data={engagementData} />
                     </div>

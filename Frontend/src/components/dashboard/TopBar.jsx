@@ -18,7 +18,7 @@ export function TopBar({ clients, selectedClientId, onSelectClient }) {
     ];
 
     return (
-        <div className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 px-8 flex items-center justify-between">
+        <div className="h-20 bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 px-4 flex items-center justify-between">
             {/* Client Selector */}
             <div className="flex items-center space-x-4">
                 <span className="text-gray-400 text-sm font-medium hidden sm:block">Managing:</span>

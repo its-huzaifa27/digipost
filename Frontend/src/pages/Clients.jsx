@@ -58,7 +58,7 @@ export function Clients() {
 
     return (
         <DashboardLayout>
-            <div className="p-6 pb-20 space-y-8">
+            <div className="p-4 pb-20 space-y-8">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>

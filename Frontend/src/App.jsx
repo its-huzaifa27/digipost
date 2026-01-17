@@ -4,6 +4,10 @@ import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { Clients } from './pages/Clients';
+import { CreatePost } from './pages/CreatePost';
+import { AIAgent } from './pages/AIAgent';
+import { Analytics } from './pages/Analytics';
+import { Settings } from './pages/Settings';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Header } from './components/Header';
 
@@ -28,10 +32,10 @@ function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
         <Route path="/clients" element={<Clients />} />
-        <Route path="/create-post" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-        <Route path="/ai-agent" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-        <Route path="/analytics" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-        <Route path="/settings" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/ai-agent" element={<AIAgent />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
   )

@@ -51,16 +51,26 @@ export function Header() {
 
                     {/* CTA Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
-                        <Link to="/login">
-                            <button className="text-lg font-semibold text-gray-700 hover:text-blue-600 px-4 py-2 transition-colors">
-                                Log in
-                            </button>
-                        </Link>
-                        <Link to="/signup">
-                            <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-                                Get started for free
-                            </button>
-                        </Link>
+                        {localStorage.getItem('token') ? (
+                            <Link to="/dashboard">
+                                <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
+                                    Go to Dashboard
+                                </button>
+                            </Link>
+                        ) : (
+                            <>
+                                <Link to="/login">
+                                    <button className="text-lg font-semibold text-gray-700 hover:text-blue-600 px-4 py-2 transition-colors">
+                                        Log in
+                                    </button>
+                                </Link>
+                                <Link to="/signup">
+                                    <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
+                                        Get started for free
+                                    </button>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Button (Hamburger) */}
@@ -95,16 +105,26 @@ export function Header() {
                             </a>
                         ))}
                         <div className="pt-4 space-y-3">
-                            <Link to="/login" className="w-full">
-                                <button className="w-full text-center text-lg font-semibold text-gray-700 hover:text-blue-600 py-3 transition-colors">
-                                    Log in
-                                </button>
-                            </Link>
-                            <Link to="/signup" className="w-full">
-                                <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
-                                    Get started for free
-                                </button>
-                            </Link>
+                            {localStorage.getItem('token') ? (
+                                <Link to="/dashboard" className="w-full">
+                                    <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
+                                        Go to Dashboard
+                                    </button>
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link to="/login" className="w-full">
+                                        <button className="w-full text-center text-lg font-semibold text-gray-700 hover:text-blue-600 py-3 transition-colors">
+                                            Log in
+                                        </button>
+                                    </Link>
+                                    <Link to="/signup" className="w-full">
+                                        <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
+                                            Get started for free
+                                        </button>
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

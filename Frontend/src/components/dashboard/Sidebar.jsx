@@ -15,19 +15,25 @@ export function Sidebar() {
         navigate('/login');
     };
 
-    const menuItems = [
-        { path: '/dashboard', label: 'Dashboard', icon: <FaLayerGroup /> },
-        { path: '/clients', label: 'Clients', icon: <FaBuilding /> }, // Using FaBuilding for Clients
-        { path: '/create-post', label: 'Create Post', icon: <FaPenNib /> },
-        { path: '/ai-agent', label: 'AI Agent', icon: <FaRobot /> },
-        { path: '/analytics', label: 'Analytics', icon: <FaChartPie /> },
-        { path: '/settings', label: 'Settings', icon: <FaGear /> },
-    ];
+    const NavItem = ({ path, label, icon }) => (
+        <Link
+            to={path}
+            className={clsx(
+                "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                location.pathname === path
+                    ? "bg-blue-50 text-blue-600 shadow-sm"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+            )}
+        >
+            <span className="text-lg">{icon}</span>
+            <span>{label}</span>
+        </Link>
+    );
 
     return (
-        <div className="w-64 bg-white h-screen fixed left-0 top-0 border-r border-gray-100 flex flex-col z-50">
+        <div className="w-48 bg-white h-screen fixed left-0 top-0 border-r border-gray-100 flex flex-col z-50">
             {/* Logo */}
-            <div className="p-8 pb-4">
+            <div className="p-4 pb-2">
                 <Link to="/" className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
                         D
@@ -39,22 +45,13 @@ export function Sidebar() {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 mt-6 space-y-2 overflow-y-auto">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.path}
-                        to={item.path}
-                        className={clsx(
-                            "flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                            location.pathname === item.path
-                                ? "bg-blue-50 text-blue-600 shadow-sm"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                        )}
-                    >
-                        <span className="text-lg">{item.icon}</span>
-                        <span>{item.label}</span>
-                    </Link>
-                ))}
+            <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+                <NavItem path="/dashboard" label="Dashboard" icon={<FaLayerGroup />} />
+                <NavItem path="/clients" label="Clients" icon={<FaBuilding />} />
+                <NavItem path="/create-post" label="Create Post" icon={<FaPenNib />} />
+                <NavItem path="/ai-agent" label="AI Agent" icon={<FaRobot />} />
+                <NavItem path="/analytics" label="Analytics" icon={<FaChartPie />} />
+                <NavItem path="/settings" label="Settings" icon={<FaGear />} />
             </nav>
 
             {/* User Profile / Logout */}
