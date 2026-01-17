@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { Clients } from './pages/Clients';
+import { ClientSelection } from './pages/ClientSelection';
 import { CreatePostPage } from './pages/CreatePost';
 import { AIAgent } from './pages/AIAgent';
 import { Analytics } from './pages/Analytics';
@@ -30,6 +31,7 @@ function App() {
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
+        <Route path="/select-client" element={<ClientSelection />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
         <Route path="/create-post-page" element={<CreatePostPage />} />
