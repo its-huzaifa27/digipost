@@ -34,9 +34,9 @@ export function Login() {
 
                 // Redirect based on role or default to dashboard
                 if (data.user.role === 'moderator') {
-                    navigate('/dashboard');
+                    navigate('/clients');
                 } else {
-                    navigate('/dashboard'); // Or user dashboard if different
+                    navigate('/clients'); // Or user dashboard if different
                 }
             } else {
                 setError(data.error || 'Login failed');

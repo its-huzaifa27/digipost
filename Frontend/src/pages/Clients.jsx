@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/Button';
 import { ClientCard } from '../components/clients/ClientCard';
@@ -10,6 +11,16 @@ export function Clients() {
     const [clients, setClients] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleSelectClient = (client) => {
+        localStorage.setItem('selectedClient', JSON.stringify({
+            id: client.id,
+            name: client.name,
+            logo: client.logo
+        }));
+        navigate('/dashboard');
+    };
 
     const fetchClients = async () => {
         try {
@@ -90,8 +101,10 @@ export function Clients() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
+                                    onClick={() => handleSelectClient(client)}
+                                    className="cursor-pointer h-full"
                                 >
-                                    <ClientCard client={client} />
+                                    <ClientCard client={client} onManage={() => handleSelectClient(client)} />
                                 </motion.div>
                             ))}
                         </div>

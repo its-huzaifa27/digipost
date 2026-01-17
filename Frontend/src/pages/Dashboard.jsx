@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { FullWidthLayout } from '../components/layout/FullWidthLayout';
 import { TopBar } from '../components/dashboard/TopBar';
-import { StatCard } from '../components/dashboard/StatCard';
-import { EngagementChart } from '../components/dashboard/EngagementChart';
-import { QuickActions } from '../components/dashboard/QuickActions';
-import { RecentActivity } from '../components/dashboard/RecentActivity';
-import { MOCK_CLIENTS } from '../data/mockData';
-import { FaFilePen, FaChartBar, FaBolt, FaUsers } from 'react-icons/fa6';
+import { ConnectedPlatformsWidget } from '../components/dashboard/ConnectedPlatformsWidget';
+import { CreatePostWidget } from '../components/dashboard/CreatePostWidget';
+import { AnalysisDrawer } from '../components/dashboard/AnalysisDrawer';
+import { Button } from '../components/ui/Button';
+import { FaChartPie } from 'react-icons/fa6';
 
 export function Dashboard() {
     const [selectedClientId, setSelectedClientId] = useState('all');
@@ -19,14 +18,48 @@ export function Dashboard() {
     const [engagementData, setEngagementData] = useState([]);
     const [clients, setClients] = useState([]);
     const [selectedClientName, setSelectedClientName] = useState('All Clients');
+    const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
+
+    // Initialize from localStorage on mount
+    useEffect(() => {
+        const stored = localStorage.getItem('selectedClient');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (parsed && parsed.id) {
+                    setSelectedClientId(parsed.id);
+                    setSelectedClientName(parsed.name || 'Client');
+                }
+            } catch (e) {
+                console.error("Failed to parse selected client", e);
+            }
+        }
+    }, []);
+
+    const handleClientChange = (clientId) => {
+        setSelectedClientId(clientId);
+
+        if (clientId === 'all') {
+            localStorage.setItem('selectedClient', JSON.stringify({ id: 'all', name: 'All Clients' }));
+            setSelectedClientName('All Clients');
+        } else {
+            const client = clients.find(c => c.id === clientId);
+            if (client) {
+                localStorage.setItem('selectedClient', JSON.stringify({
+                    id: client.id,
+                    name: client.client_name || client.name,
+                    logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(client.client_name)}&background=random&color=fff`
+                }));
+                setSelectedClientName(client.name);
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                 const token = localStorage.getItem('token');
-
-                // Build Query
                 const query = selectedClientId !== 'all' ? `?clientId=${selectedClientId}` : '';
 
                 const response = await fetch(`${API_URL}/api/dashboard/stats${query}`, {
@@ -39,12 +72,11 @@ export function Dashboard() {
                     setEngagementData(data.stats.trendData);
                     setClients(data.clients);
 
-                    // Update client name for display
-                    if (selectedClientId === 'all') {
-                        setSelectedClientName('All Clients');
-                    } else {
+                    if (selectedClientId !== 'all') {
                         const current = data.clients.find(c => c.id === selectedClientId);
                         if (current) setSelectedClientName(current.name);
+                    } else {
+                        setSelectedClientName('All Clients');
                     }
                 }
             } catch (error) {
@@ -55,71 +87,78 @@ export function Dashboard() {
         fetchDashboardData();
     }, [selectedClientId]);
 
+    const selectedClientData = clients.find(c => c.id === selectedClientId);
+
     return (
-        <DashboardLayout>
-            <TopBar
-                clients={clients}
-                selectedClientId={selectedClientId}
-                onSelectClient={setSelectedClientId}
-            />
+        <FullWidthLayout>
+            {/* Floating Toggle for Analysis Drawer (Visible when drawer is closed) */}
+            <div className="fixed left-0 top-32 z-30">
+                <button
+                    onClick={() => setIsAnalysisDrawerOpen(true)}
+                    className="bg-white border-y border-r border-gray-200 text-blue-600 p-2 pr-4 rounded-r-xl shadow-md hover:bg-blue-50 transition-all flex items-center gap-2 group hover:pr-6"
+                    title="Open Analysis"
+                >
+                    <FaChartPie className="text-xl" />
+                    <span className="text-xs font-bold text-gray-700 hidden group-hover:block transition-all">Analytics</span>
+                </button>
+            </div>
 
-            <div className="p-4 space-y-6 overflow-y-auto pb-20">
-                {/* Welcome & Context */}
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Good Morning, Admin</h1>
-                    <p className="text-gray-500">Here's what's happening with <span className="font-semibold text-gray-700">{selectedClientName}</span> today.</p>
-                </div>
+            <div className="sticky top-0 z-20">
+                <TopBar
+                    clients={clients}
+                    selectedClientId={selectedClientId}
+                    onSelectClient={handleClientChange}
+                />
+            </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard
-                        title="Total Posts"
-                        value={stats.totalPosts}
-                        icon={<FaFilePen className="text-blue-600" />}
-                        color="bg-blue-100"
-                        trend={0}
-                    />
-                    <StatCard
-                        title="Engagement Rate"
-                        value={`${stats.engagementRate}%`}
-                        icon={<FaChartBar className="text-purple-600" />}
-                        color="bg-purple-100"
-                        trend={0}
-                    />
-                    <StatCard
-                        title="Viral Score"
-                        value={stats.viralScore}
-                        icon={<FaBolt className="text-yellow-600" />}
-                        color="bg-yellow-100"
-                        subtext="High impact content"
-                    />
-                    <StatCard
-                        title="Total Followers"
-                        value={stats.followers}
-                        icon={<FaUsers className="text-green-600" />}
-                        color="bg-green-100"
-                        trend={0}
-                    />
-                </div>
-
-                {/* Main Content Area: Chart + Quick Actions */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 h-[400px]">
-                        <EngagementChart data={engagementData} />
+            <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto w-full">
+                {/* Header */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Good Morning, Admin</h1>
+                        <p className="text-gray-500 text-lg">Here's what's happening with <span className="font-semibold text-gray-700">{selectedClientName}</span> today.</p>
                     </div>
-                    <div className="lg:col-span-1">
-                        <QuickActions />
+                    <Button
+                        variant="secondary"
+                        onClick={() => setIsAnalysisDrawerOpen(true)}
+                        className="gap-2 shadow-sm border border-gray-200"
+                    >
+                        <FaChartPie className="text-blue-600" />
+                        <span>View Analytics</span>
+                    </Button>
+                </div>
+
+                {/* Main Content: Just Connected Platforms & Create Post */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    {/* Platform Status - Needs to receive client prop */}
+                    <div className="lg:col-span-2">
+                        <ConnectedPlatformsWidget client={selectedClientData} />
+                    </div>
+
+                    {/* Quick Actions / Create Post */}
+                    <div className="lg:col-span-1 min-h-[300px]">
+                        <CreatePostWidget />
                     </div>
                 </div>
 
-                {/* Recent Activity - Placeholder or Hidden until we have Posts Endpoint */}
-                <div className="grid grid-cols-1">
-                    {/* Placeholder for now */}
-                    <div className="bg-white p-6 rounded-xl border border-gray-100 text-center text-gray-400 italic">
-                        No recent activity found.
+                {/* Recent Activity Placeholder */}
+                <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center">
+                    <div className="max-w-md mx-auto">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Recent Activity</h3>
+                        <p className="text-gray-500 italic">No recent activity found for this client.</p>
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+
+            {/* Analysis Drawer (Left) */}
+            <AnalysisDrawer
+                isOpen={isAnalysisDrawerOpen}
+                onClose={() => setIsAnalysisDrawerOpen(false)}
+                clientName={selectedClientName}
+                stats={stats}
+                engagementData={engagementData}
+            />
+        </FullWidthLayout>
     );
 }

@@ -27,7 +27,7 @@ const PlatformIcon = ({ platform, connected }) => {
     );
 };
 
-export function ClientCard({ client }) {
+export function ClientCard({ client, onManage }) {
     return (
         <motion.div
             whileHover={{ y: -4, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)" }}
@@ -77,7 +77,14 @@ export function ClientCard({ client }) {
                     </div>
                 </div>
 
-                <Button variant="secondary" className="w-full text-sm py-2">
+                <Button
+                    variant="secondary"
+                    className="w-full text-sm py-2 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                    onClick={(e) => {
+                        e.stopPropagation(); // Prevent double triggering if card is also clickable
+                        if (onManage) onManage();
+                    }}
+                >
                     Manage Client
                 </Button>
             </div>

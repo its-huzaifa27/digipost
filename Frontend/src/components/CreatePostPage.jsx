@@ -1,93 +1,54 @@
 import { useState } from "react";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Card } from "../ui/Card";
-import { SocialAccountList } from "./features/create-post/SocialAccountList";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Card } from "./ui/Card";
 import { MediaUploader } from "./features/create-post/MediaUploader";
+import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn } from 'react-icons/fa6';
 
-export function CreatePost() {
+export function CreatePostPage() {
     const [caption, setCaption] = useState("");
     const [hashtags, setHashtags] = useState("");
     const [media, setMedia] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
 
-    // Social Media Accounts State
+    // Social Media Accounts State - Should ideally come from Global State/Context now
+    // For now, mocking connected state as if fetched from DB
     const [socialAccounts, setSocialAccounts] = useState([
         {
             id: 'instagram',
             name: 'Instagram',
-            connected: false,
-            username: '@yourusername',
-            color: 'from-yellow-400 via-pink-500 to-purple-600',
-            icon: (
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-            )
+            connected: true,
+            username: '@demo_user',
+            color: 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600',
+            icon: <FaInstagram />
         },
         {
             id: 'facebook',
             name: 'Facebook',
-            connected: false,
-            username: null,
-            color: 'from-blue-600 to-blue-700',
-            icon: (
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-            )
+            connected: true,
+            username: 'Demo User',
+            color: 'bg-blue-600',
+            icon: <FaFacebookF />
         },
         {
-            id: 'twitter',
-            name: 'Twitter/X',
+            id: 'visited', // just a placeholder for unconnected
+            name: 'Twitter',
             connected: false,
             username: null,
-            color: 'from-gray-800 to-black',
-            icon: (
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            )
-        },
-        {
-            id: 'linkedin',
-            name: 'LinkedIn',
-            connected: false,
-            username: 'Your Name',
-            color: 'from-blue-600 to-blue-800',
-            icon: (
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-            )
-        },
+            color: 'bg-black',
+            icon: <FaTwitter />
+        }
     ]);
 
-    const handleConnectAccount = async (accountId) => {
-        try {
-            // Securely get the OAuth URL from the backend
-            // Defaulting to localhost:5000 if VITE_API_URL is not set
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${API_URL}/api/auth/connect/${accountId}`);
+    // Selection state for posting
+    const [selectedPlatforms, setSelectedPlatforms] = useState(
+        socialAccounts.filter(a => a.connected).map(a => a.id)
+    );
 
-            if (!response.ok) {
-                throw new Error('Failed to get auth URL');
-            }
-
-            const data = await response.json();
-
-            if (data.url) {
-                window.open(data.url, '_blank', 'width=600,height=700');
-            } else {
-                console.error("No URL returned from backend");
-            }
-
-        } catch (error) {
-            console.error("Error connecting account:", error);
-            alert("Failed to initiate connection. Please check backend.");
-        }
-    };
-
-    const handleDisconnectAccount = (accountId) => {
-        setSocialAccounts(prev =>
-            prev.map(acc =>
-                acc.id === accountId
-                    ? { ...acc, connected: false, username: null }
-                    : acc
-            )
+    const togglePlatform = (id) => {
+        setSelectedPlatforms(prev =>
+            prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
         );
     };
 
@@ -95,7 +56,7 @@ export function CreatePost() {
         e.preventDefault();
 
         // Simulate posting with backend integration
-        if (caption && media) {
+        if (caption && media && selectedPlatforms.length > 0) {
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -109,8 +70,8 @@ export function CreatePost() {
                     body: JSON.stringify({
                         caption,
                         hashtags,
-                        mediaName: media.name, // Sending metadata only for now
-                        platforms: socialAccounts.filter(a => a.connected).map(a => a.id)
+                        mediaName: media.name,
+                        platforms: selectedPlatforms
                     })
                 });
 
@@ -139,6 +100,8 @@ export function CreatePost() {
             setTimeout(() => setShowError(false), 3000);
         }
     };
+
+    const connectedAccounts = socialAccounts.filter(a => a.connected);
 
     return (
         <section className="bg-[#f3f4f6] min-h-screen flex items-center justify-center p-4">
@@ -181,12 +144,36 @@ export function CreatePost() {
                         onDrop={setMedia}
                     />
 
-                    {/* Social Media Connectivity Section */}
-                    <SocialAccountList
-                        accounts={socialAccounts}
-                        onConnect={handleConnectAccount}
-                        onDisconnect={handleDisconnectAccount}
-                    />
+                    {/* Post Destination Selection */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">Publish to:</label>
+                        {connectedAccounts.length > 0 ? (
+                            <div className="space-y-2">
+                                {connectedAccounts.map(account => (
+                                    <div
+                                        key={account.id}
+                                        className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all ${selectedPlatforms.includes(account.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                                        onClick={() => togglePlatform(account.id)}
+                                    >
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${account.color}`}>
+                                            {account.icon}
+                                        </div>
+                                        <div className="flex-1">
+                                            <span className="text-sm font-medium text-gray-900 block">{account.name}</span>
+                                            <span className="text-xs text-gray-500">{account.username}</span>
+                                        </div>
+                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedPlatforms.includes(account.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                                            {selectedPlatforms.includes(account.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-4 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-200">
+                                No connected accounts found. Please go to the Dashboard to connect your social media profiles.
+                            </div>
+                        )}
+                    </div>
 
                     {/* Post Button */}
                     <Button
@@ -194,20 +181,20 @@ export function CreatePost() {
                         className="w-full"
                         size="lg"
                     >
-                        Post
+                        Post Now
                     </Button>
 
                     {/* Success Message */}
                     {showSuccess && (
                         <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg p-4">
-                            <span className="text-green-800 font-medium">Posted Successfully to Selected Platforms!</span>
+                            <span className="text-green-800 font-medium">Posted Successfully!</span>
                         </div>
                     )}
 
                     {/* Error Message */}
                     {showError && (
                         <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4">
-                            <span className="text-red-800 font-medium">Failed to Post. Please fill in all required fields.</span>
+                            <span className="text-red-800 font-medium">Failed to Post. Check caption, media, and platform selection.</span>
                         </div>
                     )}
                 </form>

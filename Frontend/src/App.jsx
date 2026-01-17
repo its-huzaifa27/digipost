@@ -4,7 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { Clients } from './pages/Clients';
-import { CreatePost } from './pages/CreatePost';
+import { CreatePostPage } from './pages/CreatePost';
 import { AIAgent } from './pages/AIAgent';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
@@ -30,9 +30,9 @@ function App() {
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
         <Route path="/clients" element={<Clients />} />
-        <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/create-post-page" element={<CreatePostPage />} />
         <Route path="/ai-agent" element={<AIAgent />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />

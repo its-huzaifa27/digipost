@@ -46,8 +46,8 @@ export function Sidebar() {
 
             {/* Navigation */}
             <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+                <NavItem path="/clients" label="My Clients" icon={<FaBuilding />} />
                 <NavItem path="/dashboard" label="Dashboard" icon={<FaLayerGroup />} />
-                <NavItem path="/clients" label="Clients" icon={<FaBuilding />} />
                 <NavItem path="/create-post" label="Create Post" icon={<FaPenNib />} />
                 <NavItem path="/ai-agent" label="AI Agent" icon={<FaRobot />} />
                 <NavItem path="/analytics" label="Analytics" icon={<FaChartPie />} />
