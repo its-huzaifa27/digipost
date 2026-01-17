@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 
 export function TopBar({ clients, selectedClientId, onSelectClient }) {
 
+    const isAllClients = selectedClientId === 'all';
     const selectedClient = clients.find(c => c.id === selectedClientId);
 
     const platformIcons = [
@@ -24,25 +25,38 @@ export function TopBar({ clients, selectedClientId, onSelectClient }) {
                 <div className="relative group">
                     <button className="flex items-center space-x-3 bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-xl transition-all border border-gray-200 min-w-[200px] justify-between">
                         <div className="flex items-center space-x-3">
-                            {selectedClient?.logo ? (
-                                <img src={selectedClient.logo} alt="Client Logo" className="w-8 h-8 rounded-lg" />
+                            {isAllClients ? (
+                                <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">ALL</div>
                             ) : (
-                                <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                                selectedClient?.logo ? (
+                                    <img src={selectedClient.logo} alt="Client Logo" className="w-8 h-8 rounded-lg" />
+                                ) : (
+                                    <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                                )
                             )}
-                            <span className="font-semibold text-gray-900 text-sm">{selectedClient?.name || 'Select Client'}</span>
+                            <span className="font-semibold text-gray-900 text-sm">
+                                {isAllClients ? 'All Clients' : (selectedClient?.name || 'Select Client')}
+                            </span>
                         </div>
                         <FaChevronDown className="text-gray-400 text-xs" />
                     </button>
 
                     {/* Dropdown Menu */}
                     <div className="absolute top-full left-0 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden hidden group-hover:block animate-fade-in-down z-50">
+                        <button
+                            onClick={() => onSelectClient('all')}
+                            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50"
+                        >
+                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">ALL</div>
+                            <span className="font-medium text-sm text-gray-700">All Clients</span>
+                        </button>
                         {clients.map(client => (
                             <button
                                 key={client.id}
                                 onClick={() => onSelectClient(client.id)}
                                 className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
                             >
-                                <img src={client.logo} alt="" className="w-8 h-8 rounded-lg" />
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(client.name)}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-lg" />
                                 <span className="font-medium text-sm text-gray-700">{client.name}</span>
                             </button>
                         ))}
@@ -53,7 +67,9 @@ export function TopBar({ clients, selectedClientId, onSelectClient }) {
             {/* Platform Status */}
             <div className="flex items-center space-x-1 sm:space-x-3 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
                 {platformIcons.map((p) => {
-                    const isConnected = selectedClient?.platforms[p.id]?.connected;
+                    // For 'All Clients', we don't show specific connections, or maybe show all grey?
+                    // Let's show grey for 'All'
+                    const isConnected = !isAllClients && selectedClient?.platforms?.[p.id]?.connected;
                     return (
                         <div
                             key={p.id}
