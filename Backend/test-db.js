@@ -1,6 +1,8 @@
 import { Sequelize } from 'sequelize';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const dbUrl = 'postgresql://postgres:DatamatexTechnology@db.vguyfopzgxisborxmsni.supabase.co:5432/postgres';
+const dbUrl = process.env.DATABASE_URL;
 
 console.log('Testing connection to:', dbUrl);
 

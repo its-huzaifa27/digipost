@@ -6,6 +6,8 @@ import { Signup } from './pages/auth/Signup';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Header } from './components/Header';
 
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+
 import './App.css'
 
 function App() {
@@ -20,12 +22,16 @@ function App() {
       } />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/clients" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/create-post" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/ai-agent" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/analytics" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/settings" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/clients" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/create-post" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/ai-agent" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/analytics" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/settings" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+      </Route>
     </Routes>
   )
 }

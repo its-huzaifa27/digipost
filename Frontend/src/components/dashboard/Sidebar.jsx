@@ -1,10 +1,19 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaBuilding, FaLayerGroup, FaPenNib, FaRobot, FaChartPie, FaGear, FaArrowRightFromBracket } from 'react-icons/fa6';
 import { clsx } from 'clsx';
 
 export function Sidebar() {
     const location = useLocation();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        // Clear auth data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Redirect to login
+        navigate('/login');
+    };
 
     const menuItems = [
         { path: '/dashboard', label: 'Dashboard', icon: <FaLayerGroup /> },
@@ -50,7 +59,10 @@ export function Sidebar() {
 
             {/* User Profile / Logout */}
             <div className="p-4 border-t border-gray-100">
-                <button className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                >
                     <FaArrowRightFromBracket />
                     <span>Logout</span>
                 </button>

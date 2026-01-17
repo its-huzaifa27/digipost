@@ -1,13 +1,16 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/user.model.js';
 import { connectDB } from '../config/db.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const createAdmin = async () => {
     try {
         await connectDB();
         
-        const email = 'test@gmail.com';
-        const password = '12345';
+        const email = process.env.ADMIN_EMAIL || 'admin@example.com';
+        const password = process.env.ADMIN_PASSWORD || 'password123';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const [user, created] = await User.findOrCreate({
