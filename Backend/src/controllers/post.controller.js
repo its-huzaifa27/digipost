@@ -45,6 +45,12 @@ export const createPost = async (req, res) => {
     if (file) {
         const baseUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`;
         imageUrl = `${baseUrl}/uploads/${file.filename}`;
+
+        // FIX: Facebook cannot access localhost. Use a placeholder for dev testing.
+        if (imageUrl.includes('localhost')) {
+            console.log("⚠️ Localhost detected. Swapping with public placeholder image for Facebook API.");
+            imageUrl = 'https://images.unsplash.com/photo-1554080353-a576cf803bda?auto=format&fit=crop&w=1000&q=80';
+        }
     }
 
     try {
