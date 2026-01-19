@@ -4,6 +4,7 @@ import fs from 'fs';
 import Post from '../models/post.model.js';
 import PlatformConnection from '../models/platformConnection.model.js';
 import metaService from '../services/meta.service.js';
+import { supabase } from '../config/supabase.js';
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
@@ -32,24 +33,47 @@ export const createPost = async (req, res) => {
 
     if (!file && platforms.length > 0) {
         // IG requires image, FB API is better with it usually
-        // But we allow text-only if logic permits. For now, enforce media for "Visual" tools.
-        // return res.status(400).json({ error: 'Media file is required.' });
     }
 
-    // Construct Public URL (Assuming server is reachable publicly or using ngrok/tunnel for dev)
-    // For Production, this must be a real domain.
-    // In Dev (localhost), FB Graph API cannot fetch image from localhost.
-    // We will assume the user has a way to expose this or we upload to Supabase Storage later.
-    // For NOW: returning a warning if localhost.
+    let uploadedFilePath = null; // To track for deletion
     let imageUrl = null;
     if (file) {
-        const baseUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 5000}`;
-        imageUrl = `${baseUrl}/uploads/${file.filename}`;
+        try {
+            // Upload to Supabase
+            const fileExt = path.extname(file.originalname);
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExt}`;
+            uploadedFilePath = fileName; // Store path for cleanup
+            
+            // Read file from disk
+            const fileBuffer = fs.readFileSync(file.path);
 
-        // FIX: Facebook cannot access localhost. Use a placeholder for dev testing.
-        if (imageUrl.includes('localhost')) {
-            console.log("⚠️ Localhost detected. Swapping with public placeholder image for Facebook API.");
-            imageUrl = 'https://images.unsplash.com/photo-1554080353-a576cf803bda?auto=format&fit=crop&w=1000&q=80';
+            const { data, error } = await supabase.storage
+                .from('uploads')
+                .upload(uploadedFilePath, fileBuffer, {
+                    contentType: file.mimetype,
+                    upsert: false
+                });
+
+            if (error) {
+                console.error("Supabase Upload Error:", error);
+                throw new Error(`Image upload failed: ${error.message}`);
+            }
+
+            // Get Public URL
+            const { data: publicUrlData } = supabase.storage
+                .from('uploads')
+                .getPublicUrl(uploadedFilePath);
+            
+            imageUrl = publicUrlData.publicUrl;
+            console.log("✅ Image uploaded to Supabase:", imageUrl);
+
+            // Clean up local file
+            fs.unlinkSync(file.path);
+
+        } catch (uploadError) {
+            console.error("Upload process failed:", uploadError);
+            // Fallback? Or fail? Failed upload means we can't post to IG/FB properly.
+            return res.status(500).json({ error: "Failed to upload image to storage." });
         }
     }
 
@@ -98,7 +122,21 @@ export const createPost = async (req, res) => {
             }
         }
 
-        // 3. Update Post Record
+        // 3. Transient Cleanup: Remove image from Supabase after posting
+        if (uploadedFilePath) {
+            console.log("🧹 Cleaning up transient image from Supabase...");
+            const { error: deleteError } = await supabase.storage
+                .from('uploads')
+                .remove([uploadedFilePath]);
+            
+            if (deleteError) {
+                console.error("⚠️ Failed to cleanup image:", deleteError);
+            } else {
+                console.log("✨ Image deleted from Supabase (Transient Mode).");
+            }
+        }
+
+        // 4. Update Post Record
         post.results = results;
 
         // Determine overall status
