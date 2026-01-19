@@ -66,7 +66,7 @@ export function ConnectedPlatformsWidget({ client }) {
                             className={clsx(
                                 "flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-200",
                                 isConnected
-                                    ? "bg-gray-50 border-gray-100 cursor-default"
+                                    ? "bg-blue-50 border-blue-200 cursor-default shadow-inner ring-1 ring-blue-100" // Highlighted
                                     : "bg-white border-gray-100 border-dashed opacity-60 hover:opacity-100 hover:border-blue-300 hover:shadow-sm cursor-pointer group"
                             )}
                             title={isConnected ? "Connected" : `Connect to ${p.label}`}

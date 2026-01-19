@@ -19,6 +19,7 @@ export function Dashboard() {
     const [clients, setClients] = useState([]);
     const [selectedClientName, setSelectedClientName] = useState('All Clients');
     const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
+    const [platformConnections, setPlatformConnections] = useState({});
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -72,6 +73,11 @@ export function Dashboard() {
                     setEngagementData(data.stats.trendData);
                     setClients(data.clients);
 
+                    // Update connections globally for now (since they mirror the user's connections)
+                    if (data.platformConnections) {
+                        setPlatformConnections(data.platformConnections);
+                    }
+
                     if (selectedClientId !== 'all') {
                         const current = data.clients.find(c => c.id === selectedClientId);
                         if (current) setSelectedClientName(current.name);
@@ -87,7 +93,11 @@ export function Dashboard() {
         fetchDashboardData();
     }, [selectedClientId]);
 
-    const selectedClientData = clients.find(c => c.id === selectedClientId);
+    // Construct a client object that includes the platforms for the widget
+    const widgetClientData = {
+        name: selectedClientName,
+        platforms: platformConnections // Pass the connections here
+    };
 
     return (
         <FullWidthLayout>
@@ -131,9 +141,9 @@ export function Dashboard() {
                 {/* Main Content: Just Connected Platforms & Create Post */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Platform Status - Needs to receive client prop */}
+                    {/* Platform Status */}
                     <div className="lg:col-span-2">
-                        <ConnectedPlatformsWidget client={selectedClientData} />
+                        <ConnectedPlatformsWidget client={widgetClientData} />
                     </div>
 
                     {/* Quick Actions / Create Post */}

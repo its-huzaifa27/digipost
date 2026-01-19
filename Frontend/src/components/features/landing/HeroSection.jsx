@@ -1,8 +1,21 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '../../ui/Button';
 
 export function HeroSection() {
+    const location = useLocation();
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        const checkAuth = () => {
+            const token = localStorage.getItem('token');
+            setIsLoggedIn(!!token);
+        };
+        checkAuth();
+        const interval = setInterval(checkAuth, 1000); // Polling for safety
+        return () => clearInterval(interval);
+    }, [location]);
+
     return (
         <div className="relative w-full h-screen overflow-hidden text-white font-sans mt-4">
             {/* Background Image with Overlay */}
@@ -38,25 +51,39 @@ export function HeroSection() {
 
                     {/* Buttons */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10">
-                        <Link to="/signup">
-                            <Button
-                                variant="gradient"
-                                size="xl"
-                                className="rounded-full shadow-lg"
-                            >
-                                Get Started For Free
-                            </Button>
-                        </Link>
+                        {isLoggedIn ? (
+                            <Link to="/dashboard">
+                                <Button
+                                    variant="gradient"
+                                    size="xl"
+                                    className="rounded-full shadow-lg px-12"
+                                >
+                                    Go to Dashboard
+                                </Button>
+                            </Link>
+                        ) : (
+                            <>
+                                <Link to="/signup">
+                                    <Button
+                                        variant="gradient"
+                                        size="xl"
+                                        className="rounded-full shadow-lg"
+                                    >
+                                        Get Started For Free
+                                    </Button>
+                                </Link>
 
-                        <Link to="/login">
-                            <Button
-                                variant="secondary"
-                                size="xl"
-                                className="rounded-full shadow-lg bg-white/10 backdrop-blur-md border border-black/20 text-black hover:bg-white/20"
-                            >
-                                Log In
-                            </Button>
-                        </Link>
+                                <Link to="/login">
+                                    <Button
+                                        variant="secondary"
+                                        size="xl"
+                                        className="rounded-full shadow-lg bg-white/10 backdrop-blur-md border border-black/20 text-black hover:bg-white/20"
+                                    >
+                                        Log In
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 const ChevronDown = () => (
     <svg
@@ -19,6 +19,24 @@ const ChevronDown = () => (
 
 export function Header() {
     const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation(); // Force re-render on route change
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+
+    useEffect(() => {
+        // Function to check token
+        const checkAuth = () => {
+            const token = localStorage.getItem('token');
+            setIsLoggedIn(!!token);
+        };
+
+        // Check on mount and location change
+        checkAuth();
+
+        // Also polling every 500ms as a fallback for weird state edge cases
+        const interval = setInterval(checkAuth, 1000);
+
+        return () => clearInterval(interval);
+    }, [location]);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm font-sans">
@@ -51,7 +69,7 @@ export function Header() {
 
                     {/* CTA Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
-                        {localStorage.getItem('token') ? (
+                        {isLoggedIn ? (
                             <Link to="/dashboard">
                                 <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
                                     Go to Dashboard
@@ -105,7 +123,7 @@ export function Header() {
                             </a>
                         ))}
                         <div className="pt-4 space-y-3">
-                            {localStorage.getItem('token') ? (
+                            {isLoggedIn ? (
                                 <Link to="/dashboard" className="w-full">
                                     <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
                                         Go to Dashboard
