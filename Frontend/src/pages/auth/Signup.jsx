@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 
 export function Signup() {
     const [role, setRole] = useState('user'); // 'user' or 'moderator'
@@ -13,6 +14,7 @@ export function Signup() {
         password: ''
     });
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
@@ -107,11 +109,24 @@ export function Signup() {
                 <Input
                     label="Password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="Create a strong password"
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    rightElement={
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                        >
+                            {showPassword ? (
+                                <HiOutlineEyeOff className="w-5 h-5" />
+                            ) : (
+                                <HiOutlineEye className="w-5 h-5" />
+                            )}
+                        </button>
+                    }
                 />
 
                 {error && (

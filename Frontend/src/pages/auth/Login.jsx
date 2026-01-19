@@ -4,10 +4,12 @@ import { motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 
 export function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
@@ -70,11 +72,24 @@ export function Login() {
                 <div>
                     <Input
                         label="Password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        rightElement={
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="text-gray-400 hover:text-gray-600 focus:outline-none cursor-pointer"
+                            >
+                                {showPassword ? (
+                                    <HiOutlineEyeOff className="w-5 h-5" />
+                                ) : (
+                                    <HiOutlineEye className="w-5 h-5" />
+                                )}
+                            </button>
+                        }
                     />
                     <div className="text-right mt-1">
                         <Link to="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
