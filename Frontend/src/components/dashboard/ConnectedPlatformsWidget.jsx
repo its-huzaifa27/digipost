@@ -19,6 +19,21 @@ export function ConnectedPlatformsWidget({ client }) {
     const handleConnect = async (platformId) => {
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+            // For Facebook and Instagram, use the new Production Meta Service
+            if (platformId === 'facebook' || platformId === 'instagram') {
+                const response = await fetch(`${API_URL}/api/meta/auth-url`);
+                const data = await response.json();
+
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert('Failed to get Meta Auth URL');
+                }
+                return;
+            }
+
+            // Legacy/Other platforms
             const response = await fetch(`${API_URL}/api/auth/connect/${platformId}`);
 
             if (!response.ok) throw new Error('Failed to get auth URL');

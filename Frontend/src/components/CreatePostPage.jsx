@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Card } from "./ui/Card";
@@ -12,39 +12,50 @@ export function CreatePostPage() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
 
-    // Social Media Accounts State - Should ideally come from Global State/Context now
-    // For now, mocking connected state as if fetched from DB
-    const [socialAccounts, setSocialAccounts] = useState([
-        {
-            id: 'instagram',
-            name: 'Instagram',
-            connected: true,
-            username: '@demo_user',
-            color: 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600',
-            icon: <FaInstagram />
-        },
-        {
-            id: 'facebook',
-            name: 'Facebook',
-            connected: true,
-            username: 'Demo User',
-            color: 'bg-blue-600',
-            icon: <FaFacebookF />
-        },
-        {
-            id: 'visited', // just a placeholder for unconnected
-            name: 'Twitter',
-            connected: false,
-            username: null,
-            color: 'bg-black',
-            icon: <FaTwitter />
-        }
-    ]);
+    const [socialAccounts, setSocialAccounts] = useState([]);
+    const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+
+    // Fetch Connected Accounts from Backend
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            try {
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const token = localStorage.getItem('token');
+
+                const response = await fetch(`${API_URL}/api/meta/pages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const pages = await response.json();
+
+                    // Transform backend data to match UI component structure
+                    const formattedAccounts = pages.map(page => ({
+                        id: page.platform, // 'facebook' or 'instagram'
+                        name: page.pageName || page.platform,
+                        connected: true,
+                        username: page.platformUserId || 'Connected',
+                        color: page.platform === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-blue-600',
+                        icon: page.platform === 'instagram' ? <FaInstagram /> : <FaFacebookF />
+                    }));
+
+                    setSocialAccounts(formattedAccounts);
+
+                    // Auto-select all connected
+                    setSelectedPlatforms(formattedAccounts.map(a => a.id));
+                }
+            } catch (error) {
+                console.error("Failed to fetch accounts:", error);
+            } finally {
+                setIsLoadingAccounts(false);
+            }
+        };
+
+        fetchAccounts();
+    }, []);
 
     // Selection state for posting
-    const [selectedPlatforms, setSelectedPlatforms] = useState(
-        socialAccounts.filter(a => a.connected).map(a => a.id)
-    );
+    const [selectedPlatforms, setSelectedPlatforms] = useState([]);
 
     const togglePlatform = (id) => {
         setSelectedPlatforms(prev =>
@@ -55,24 +66,28 @@ export function CreatePostPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Simulate posting with backend integration
-        if (caption && media && selectedPlatforms.length > 0) {
+        if (caption && selectedPlatforms.length > 0) {
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const token = localStorage.getItem('token');
 
-                // Note: For real file uploads, we would use FormData. 
-                // For this secure logic demo, we are sending metadata to verify the protected API call.
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('caption', caption);
+                formData.append('platforms', JSON.stringify(selectedPlatforms));
+
+                // Append media file if exists
+                if (media) {
+                    formData.append('media', media);
+                }
+
                 const response = await fetch(`${API_URL}/api/posts/create`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                        // Content-Type is set automatically by browser for FormData
                     },
-                    body: JSON.stringify({
-                        caption,
-                        hashtags,
-                        mediaName: media.name,
-                        platforms: selectedPlatforms
-                    })
+                    body: formData
                 });
 
                 if (response.ok) {
@@ -86,7 +101,8 @@ export function CreatePostPage() {
                         setMedia(null);
                     }, 3000);
                 } else {
-                    throw new Error('Backend rejected post');
+                    const data = await response.json();
+                    throw new Error(data.error || 'Backend rejected post');
                 }
             } catch (error) {
                 console.error("Post creation failed:", error);
@@ -101,7 +117,7 @@ export function CreatePostPage() {
         }
     };
 
-    const connectedAccounts = socialAccounts.filter(a => a.connected);
+    const connectedAccounts = socialAccounts; // They are already filtered in valid state logic usually, or just show all fetching ones
 
     return (
         <section className="bg-[#f3f4f6] min-h-screen flex items-center justify-center p-4">

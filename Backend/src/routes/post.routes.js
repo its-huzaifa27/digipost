@@ -1,8 +1,10 @@
 import express from 'express';
-import { createPost } from '../controllers/post.controller.js';
+import { createPost, upload } from '../controllers/post.controller.js';
+import { authenticateToken } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/create', createPost);
+// 'media' must match the FormData key sent from frontend
+router.post('/create', authenticateToken, upload.single('media'), createPost);
 
 export default router;

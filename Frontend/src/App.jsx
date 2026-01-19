@@ -3,6 +3,7 @@ import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
+import { AuthCallback } from './pages/auth/AuthCallback';
 import { Clients } from './pages/Clients';
 import { ClientSelection } from './pages/ClientSelection';
 import { CreatePostPage } from './pages/CreatePost';
@@ -28,6 +29,7 @@ function App() {
       } />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>
