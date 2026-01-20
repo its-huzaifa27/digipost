@@ -19,11 +19,11 @@ export function CreatePostPage() {
     useEffect(() => {
         const fetchAccounts = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const token = localStorage.getItem('token');
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';//setting the backend url to send data  if app is live then the proper backend url if not then then local host backend
+                const token = localStorage.getItem('token');//digipost app login token fetcheing from the local storage 
 
                 const response = await fetch(`${API_URL}/api/meta/pages`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` }//here we are asking the backend for connected pages of the user andgiving it the token for proof of login
                 });
 
                 if (response.ok) {
