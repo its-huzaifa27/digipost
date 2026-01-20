@@ -25,11 +25,11 @@ export const upload = multer({ storage: storage });
 
 export const createPost = async (req, res) => {
     const userId = req.user.id; // From middleware
-    const { caption, platforms: platformsJson } = req.body;
+    const { caption, platforms: platformsJson, scheduledTime } = req.body;
     const platforms = JSON.parse(platformsJson || '[]');
     const file = req.file;
 
-    console.log("Create Post Request:", { userId, caption, platforms, file: file?.filename });
+    console.log("Create Post Request:", { userId, caption, platforms, file: file?.filename, scheduledTime });
 
     if (!file && platforms.length > 0) {
         // IG requires image, FB API is better with it usually
@@ -43,7 +43,7 @@ export const createPost = async (req, res) => {
             const fileExt = path.extname(file.originalname);
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExt}`;
             uploadedFilePath = fileName; // Store path for cleanup
-            
+
             // Read file from disk
             const fileBuffer = fs.readFileSync(file.path);
 
@@ -63,7 +63,7 @@ export const createPost = async (req, res) => {
             const { data: publicUrlData } = supabase.storage
                 .from('uploads')
                 .getPublicUrl(uploadedFilePath);
-            
+
             imageUrl = publicUrlData.publicUrl;
             console.log("✅ Image uploaded to Supabase:", imageUrl);
 
@@ -109,7 +109,7 @@ export const createPost = async (req, res) => {
             try {
                 let response;
                 if (platformId === 'facebook') {
-                    response = await metaService.publishToFacebook(connection, caption, imageUrl);
+                    response = await metaService.publishToFacebook(connection, caption, imageUrl, scheduledTime);
                 } else if (platformId === 'instagram') {
                     // Instagram-specific check for image
                     if (!imageUrl) throw new Error("Instagram requires an image.");
@@ -117,8 +117,9 @@ export const createPost = async (req, res) => {
                 }
                 results[platformId] = { success: true, response: response?.data || response };
             } catch (err) {
-                console.error(`Publish failed for ${platformId}:`, err.message);
-                results[platformId] = { success: false, error: err.message };
+                const errorDetail = err.response?.data || err.message;
+                console.error(`Publish failed for ${platformId}:`, errorDetail);
+                results[platformId] = { success: false, error: errorDetail };
             }
         }
 
@@ -128,7 +129,7 @@ export const createPost = async (req, res) => {
             const { error: deleteError } = await supabase.storage
                 .from('uploads')
                 .remove([uploadedFilePath]);
-            
+
             if (deleteError) {
                 console.error("⚠️ Failed to cleanup image:", deleteError);
             } else {

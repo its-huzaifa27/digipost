@@ -63,6 +63,9 @@ export function CreatePostPage() {
         );
     };
 
+    const [isScheduled, setIsScheduled] = useState(false);
+    const [scheduledDate, setScheduledDate] = useState("");
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -79,6 +82,12 @@ export function CreatePostPage() {
                 // Append media file if exists
                 if (media) {
                     formData.append('media', media);
+                }
+
+                // If scheduled, convert to Unix timestamp (seconds)
+                if (isScheduled && scheduledDate) {
+                    const timestamp = Math.floor(new Date(scheduledDate).getTime() / 1000);
+                    formData.append('scheduledTime', timestamp);
                 }
 
                 const response = await fetch(`${API_URL}/api/posts/create`, {
@@ -99,6 +108,8 @@ export function CreatePostPage() {
                         setCaption("");
                         setHashtags("");
                         setMedia(null);
+                        setIsScheduled(false);
+                        setScheduledDate("");
                     }, 3000);
                 } else {
                     const data = await response.json();
@@ -191,13 +202,52 @@ export function CreatePostPage() {
                         )}
                     </div>
 
+                    {/* Publishing Options */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-semibold text-gray-900">Publishing Options:</label>
+                        <div className="flex space-x-4">
+                            <button
+                                type="button"
+                                onClick={() => setIsScheduled(false)}
+                                className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${!isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
+                            >
+                                Post Now
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsScheduled(true)}
+                                className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
+                            >
+                                Schedule
+                            </button>
+                        </div>
+
+                        {isScheduled && (
+                            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
+                                    Scheduled Time:
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    value={scheduledDate}
+                                    onChange={(e) => setScheduledDate(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                                    min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)} // Min 10 mins from now
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1 italic">
+                                    * Scheduling must be at least 10 minutes in advance.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Post Button */}
                     <Button
                         type="submit"
                         className="w-full"
                         size="lg"
                     >
-                        Post Now
+                        {isScheduled ? 'Schedule Post' : 'Post Now'}
                     </Button>
 
                     {/* Success Message */}

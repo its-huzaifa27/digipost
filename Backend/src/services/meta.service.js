@@ -121,26 +121,25 @@ class MetaService {
     /**
      * Publishes a post to Facebook.
      */
-    async publishToFacebook(connection, message, imageUrl) {
+    async publishToFacebook(connection, message, imageUrl, scheduledTime) {
         try {
-            const url = `${FB_GRAPH_URL}/${connection.pageId}/feed`;
-            const payload = {
-                message: message,
-                access_token: connection.accessToken,
-            };
+            const params = new URLSearchParams();
+            params.append('access_token', connection.accessToken);
+
+            if (scheduledTime) {
+                params.append('published', 'false');
+                params.append('scheduled_publish_time', scheduledTime);
+            }
 
             if (imageUrl) {
-                // If image, posting to /photos endpoint is often better, or use 'link'/'url' param on feed
-                // For simplicity consistent with user flow:
-                // If it's a photo post:
                 const photoUrl = `${FB_GRAPH_URL}/${connection.pageId}/photos`;
-                return await axios.post(photoUrl, {
-                    url: imageUrl,
-                    caption: message,
-                    access_token: connection.accessToken
-                });
+                params.append('url', imageUrl);
+                params.append('caption', message);
+                return await axios.post(photoUrl, params);
             } else {
-                return await axios.post(url, payload);
+                const url = `${FB_GRAPH_URL}/${connection.pageId}/feed`;
+                params.append('message', message);
+                return await axios.post(url, params);
             }
         } catch (error) {
             console.error(`FB Publish Error (${connection.pageName}):`, error.response?.data || error.message);
@@ -158,13 +157,15 @@ class MetaService {
             }
 
             // Step 1: Create Container
-            const containerResponse = await axios.post(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, null, {
-                params: {
-                    image_url: imageUrl,
-                    caption: caption,
-                    access_token: connection.accessToken,
-                },
-            });
+            const containerParams = new URLSearchParams();
+            containerParams.append('image_url', imageUrl);
+            containerParams.append('caption', caption);
+            containerParams.append('access_token', connection.accessToken);
+
+            const containerResponse = await axios.post(
+                `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
+                containerParams
+            );
 
             const creationId = containerResponse.data.id;
 
@@ -172,7 +173,7 @@ class MetaService {
             let status = 'IN_PROGRESS';
             let attempts = 0;
             const maxAttempts = 10;
-            
+
             while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
                 attempts++;
                 // Wait 3 seconds before checking
@@ -185,7 +186,7 @@ class MetaService {
                             access_token: connection.accessToken
                         }
                     });
-                    
+
                     status = statusResponse.data.status_code; // 'FINISHED', 'IN_PROGRESS', or 'ERROR'
                     console.log(`Instagram Media Status (${attempts}/${maxAttempts}):`, status);
 
@@ -202,12 +203,14 @@ class MetaService {
             }
 
             // Step 2: Publish Container
-            const publishResponse = await axios.post(`${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`, null, {
-                params: {
-                    creation_id: creationId,
-                    access_token: connection.accessToken,
-                },
-            });
+            const publishParams = new URLSearchParams();
+            publishParams.append('creation_id', creationId);
+            publishParams.append('access_token', connection.accessToken);
+
+            const publishResponse = await axios.post(
+                `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
+                publishParams
+            );
 
             return publishResponse.data;
 
