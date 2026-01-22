@@ -169,38 +169,8 @@ class MetaService {
 
             const creationId = containerResponse.data.id;
 
-            // Step 1.5: Wait for Media to be Ready (Polling)
-            let status = 'IN_PROGRESS';
-            let attempts = 0;
-            const maxAttempts = 10;
-
-            while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
-                attempts++;
-                // Wait 3 seconds before checking
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                try {
-                    const statusResponse = await axios.get(`${FB_GRAPH_URL}/${creationId}`, {
-                        params: {
-                            fields: 'status_code,status',
-                            access_token: connection.accessToken
-                        }
-                    });
-
-                    status = statusResponse.data.status_code; // 'FINISHED', 'IN_PROGRESS', or 'ERROR'
-                    console.log(`Instagram Media Status (${attempts}/${maxAttempts}):`, status);
-
-                    if (status === 'ERROR') {
-                        throw new Error("Instagram Media processing failed.");
-                    }
-                } catch (statusError) {
-                    console.warn("Failed to check status, retrying...", statusError.message);
-                }
-            }
-
-            if (status !== 'FINISHED') {
-                throw new Error("Instagram Media timed out processing.");
-            }
+            // Step 1.5: Wait for Media to be Ready
+            await this._waitForInstagramMedia(creationId, connection.accessToken);
 
             // Step 2: Publish Container
             const publishParams = new URLSearchParams();
@@ -219,6 +189,75 @@ class MetaService {
             throw error;
         }
     }
+
+    /**
+     * Polls the Instagram API to check if a media container is ready for publishing.
+     */
+    async _waitForInstagramMedia(creationId, accessToken) {
+        let status = 'IN_PROGRESS';
+        let attempts = 0;
+        const maxAttempts = 12; // Increased slightly for safety
+
+        while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
+            attempts++;
+            // Wait 3 seconds before checking
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            try {
+                const statusResponse = await axios.get(`${FB_GRAPH_URL}/${creationId}`, {
+                    params: {
+                        fields: 'status_code,status',
+                        access_token: accessToken
+                    }
+                });
+
+                status = statusResponse.data.status_code;
+                console.log(`Instagram Media Status (${attempts}/${maxAttempts}):`, status);
+
+                if (status === 'ERROR' || status === 'EXPIRED') {
+                    throw new Error(`Instagram Media processing failed with status: ${status}`);
+                }
+            } catch (statusError) {
+                console.warn("Failed to check IG status, retrying...", statusError.message);
+            }
+        }
+
+        if (status !== 'FINISHED') {
+            throw new Error("Instagram Media timed out processing. The image might be too large or invalid.");
+        }
+    }
+
+    async scheduleInstagramPost(connection, caption, imageUrl, scheduledTime) {
+        try {
+            if (!imageUrl) {
+                throw new Error("Instagram requires an image.");
+            }
+
+            const params = new URLSearchParams();
+            params.append("image_url", imageUrl);
+            params.append("caption", caption);
+            params.append("is_published", "false");
+            params.append("scheduled_publish_time", scheduledTime); // UNIX timestamp
+            params.append("access_token", connection.accessToken);
+
+            const res = await axios.post(
+                `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
+                params
+            );
+
+            const creationId = res.data.id;
+
+            // CRITICAL: Wait for IG to fetch and process the image from Supabase 
+            // before we return (and subsequently delete the image from Supabase).
+            await this._waitForInstagramMedia(creationId, connection.accessToken);
+
+            return res.data; // container id
+        } catch (error) {
+            console.error("IG Schedule Error:", error.response?.data || error.message);
+            throw error;
+        }
+    }
+
 }
 
 export default new MetaService();

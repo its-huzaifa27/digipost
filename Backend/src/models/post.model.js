@@ -28,8 +28,12 @@ const Post = sequelize.define('Post', {
         defaultValue: [],
     },
     status: {
-        type: DataTypes.ENUM('pending', 'published', 'failed', 'partial'),
+        type: DataTypes.ENUM('pending', 'published', 'failed', 'partial', 'scheduled'),
         defaultValue: 'pending',
+    },
+    scheduledAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
     },
     results: {
         type: DataTypes.JSONB, // Store detailed API responses per platform

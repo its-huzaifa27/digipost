@@ -113,9 +113,20 @@ export const createPost = async (req, res) => {
                 } else if (platformId === 'instagram') {
                     // Instagram-specific check for image
                     if (!imageUrl) throw new Error("Instagram requires an image.");
-                    response = await metaService.publishToInstagram(connection, caption, imageUrl);
+
+                    if (scheduledTime) {
+                        // Use the new scheduling method
+                        response = await metaService.scheduleInstagramPost(connection, caption, imageUrl, scheduledTime);
+                    } else {
+                        // Regular publish
+                        response = await metaService.publishToInstagram(connection, caption, imageUrl);
+                    }
                 }
-                results[platformId] = { success: true, response: response?.data || response };
+                results[platformId] = {
+                    success: true,
+                    response: response?.data || response,
+                    scheduledTime: scheduledTime || null
+                };
             } catch (err) {
                 const errorDetail = err.response?.data || err.message;
                 console.error(`Publish failed for ${platformId}:`, errorDetail);
@@ -139,14 +150,21 @@ export const createPost = async (req, res) => {
 
         // 4. Update Post Record
         post.results = results;
+        if (scheduledTime) {
+            post.scheduledAt = new Date(scheduledTime * 1000);
+        }
 
         // Determine overall status
         const failures = Object.values(results).filter(r => !r.success).length;
         const successes = Object.values(results).filter(r => r.success).length;
 
-        if (failures === 0 && successes > 0) post.status = 'published';
-        else if (successes === 0 && failures > 0) post.status = 'failed';
-        else post.status = 'partial'; // Mixed
+        if (failures === 0 && successes > 0) {
+            post.status = scheduledTime ? 'scheduled' : 'published';
+        } else if (successes === 0 && failures > 0) {
+            post.status = 'failed';
+        } else {
+            post.status = 'partial'; // Mixed
+        }
 
         await post.save();
 
