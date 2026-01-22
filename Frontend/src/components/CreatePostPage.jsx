@@ -82,6 +82,12 @@ export function CreatePostPage() {
         e.preventDefault();
 
         if (caption && selectedPlatforms.length > 0) {
+            // Validation: Instagram requires an image
+            if (selectedPlatforms.includes('instagram') && !media) {
+                alert("Instagram requires an image/video. Please upload media.");
+                return;
+            }
+
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                 const token = localStorage.getItem('token');
@@ -96,6 +102,7 @@ export function CreatePostPage() {
                 }
 
                 // Create FormData for file upload
+                console.log("Submitting Post. Media:", media);
                 const formData = new FormData();
                 formData.append('caption', caption);
                 formData.append('platforms', JSON.stringify(selectedPlatforms));

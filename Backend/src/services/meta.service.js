@@ -278,7 +278,7 @@ class MetaService {
             const params = new URLSearchParams();
             params.append("image_url", imageUrl);
             params.append("caption", caption);
-            params.append("is_published", "false");
+            params.append("published", "false");
             params.append("scheduled_publish_time", scheduledTime); // UNIX timestamp
             params.append("access_token", connection.accessToken);
 

@@ -140,7 +140,8 @@ export const createPost = async (req, res) => {
         }
 
         // 3. Transient Cleanup: Remove image from Supabase after posting
-        if (uploadedFilePath) {
+        // ONLY if it's NOT scheduled. If scheduled, we keep it to ensure Meta can access it later if needed.
+        if (uploadedFilePath && !scheduledTime) {
             console.log("🧹 Cleaning up transient image from Supabase...");
             const { error: deleteError } = await supabase.storage
                 .from('uploads')
@@ -151,6 +152,8 @@ export const createPost = async (req, res) => {
             } else {
                 console.log("✨ Image deleted from Supabase (Transient Mode).");
             }
+        } else if (uploadedFilePath && scheduledTime) {
+            console.log("📅 Post is scheduled. Keeping image in Supabase to ensure availability.");
         }
 
         // 4. Update Post Record
