@@ -9,6 +9,7 @@ import { connectDB } from './src/config/db.js';
 import './src/models/user.model.js';
 import './src/models/platformConnection.model.js';
 import './src/models/post.model.js';
+import './src/models/postSchedule.model.js';
 
 import authRoutes from './src/routes/auth.routes.js';
 import postRoutes from './src/routes/post.routes.js';
