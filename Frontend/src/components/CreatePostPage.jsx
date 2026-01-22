@@ -19,11 +19,23 @@ export function CreatePostPage() {
     useEffect(() => {
         const fetchAccounts = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';//setting the backend url to send data  if app is live then the proper backend url if not then then local host backend
-                const token = localStorage.getItem('token');//digipost app login token fetcheing from the local storage 
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const token = localStorage.getItem('token');
 
-                const response = await fetch(`${API_URL}/api/meta/pages`, {
-                    headers: { 'Authorization': `Bearer ${token}` }//here we are asking the backend for connected pages of the user andgiving it the token for proof of login
+                // Get selected client
+                const selectedClientRaw = localStorage.getItem('selectedClient');
+                const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
+                const clientId = selectedClient?.id;
+
+                if (!clientId || clientId === 'all') {
+                    // No specific client selected, cannot fetch pages
+                    setSocialAccounts([]);
+                    setIsLoadingAccounts(false);
+                    return;
+                }
+
+                const response = await fetch(`${API_URL}/api/meta/pages?clientId=${clientId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (response.ok) {
@@ -74,10 +86,20 @@ export function CreatePostPage() {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                 const token = localStorage.getItem('token');
 
+                // Get Client ID
+                const selectedClientRaw = localStorage.getItem('selectedClient');
+                const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
+                const clientId = selectedClient?.id;
+
+                if (!clientId) {
+                    throw new Error("No client selected");
+                }
+
                 // Create FormData for file upload
                 const formData = new FormData();
                 formData.append('caption', caption);
                 formData.append('platforms', JSON.stringify(selectedPlatforms));
+                formData.append('clientId', clientId);
 
                 // Append media file if exists
                 if (media) {

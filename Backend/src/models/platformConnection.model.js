@@ -2,16 +2,26 @@ import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 import { encrypt, decrypt } from '../utils/encryption.js';
 
+import Client from './client.model.js';
+
 const PlatformConnection = sequelize.define('PlatformConnection', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
     },
+    // A connection belongs to a specific Client (Brand)
+    clientId: {
+        type: DataTypes.UUID,
+        allowNull: true, // Allow null initially for migration, but should eventually be required
+        references: {
+            model: Client,
+            key: 'id'
+        }
+    },
     userId: {
         type: DataTypes.UUID,
-        allowNull: false,
-        // References User model (handled by associations)
+        allowNull: true, // Now optional, as clientId is the primary owner
     },
     platform: {
         type: DataTypes.ENUM('facebook', 'instagram', 'linkedin', 'twitter'),
@@ -58,9 +68,13 @@ const PlatformConnection = sequelize.define('PlatformConnection', {
     indexes: [
         {
             unique: true,
-            fields: ['userId', 'platform', 'pageId']
+            fields: ['clientId', 'platform', 'pageId'] // Unique per client
         }
     ]
 });
+
+// Associations
+Client.hasMany(PlatformConnection, { foreignKey: 'clientId' });
+PlatformConnection.belongsTo(Client, { foreignKey: 'clientId' });
 
 export default PlatformConnection;

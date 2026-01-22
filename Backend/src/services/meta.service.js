@@ -33,7 +33,7 @@ class MetaService {
     /**
      * Exchanges the short-lived code from the frontend for a Long-Lived User Access Token.
      */
-    async exchangeCodeForToken(code, userId) {
+    async exchangeCodeForToken(code, userId, clientId = null) {
         try {
             // 1. Get Short-Lived User Token
             const tokenResponse = await axios.get(`${FB_GRAPH_URL}/oauth/access_token`, {
@@ -45,7 +45,16 @@ class MetaService {
                 },
             });
 
+            // Check for errors in token response
+            if (tokenResponse.data.error) {
+                console.error('Facebook Token Exchange Error:', tokenResponse.data.error);
+                throw new Error(`Facebook OAuth Error: ${tokenResponse.data.error.message || 'Failed to exchange code for token'}`);
+            }
+
             const shortLivedToken = tokenResponse.data.access_token;
+            if (!shortLivedToken) {
+                throw new Error('No access token received from Facebook');
+            }
 
             // 2. Exchange for Long-Lived User Token (lasts 60 days)
             const longLivedResponse = await axios.get(`${FB_GRAPH_URL}/oauth/access_token`, {
@@ -57,23 +66,37 @@ class MetaService {
                 },
             });
 
+            // Check for errors in long-lived token response
+            if (longLivedResponse.data.error) {
+                console.error('Facebook Long-Lived Token Exchange Error:', longLivedResponse.data.error);
+                throw new Error(`Facebook OAuth Error: ${longLivedResponse.data.error.message || 'Failed to exchange for long-lived token'}`);
+            }
+
             const longLivedToken = longLivedResponse.data.access_token;
+            if (!longLivedToken) {
+                throw new Error('No long-lived access token received from Facebook');
+            }
 
             // 3. Fetch User's Pages and their Tokens
-            await this.fetchAndSavePages(longLivedToken, userId);
+            await this.fetchAndSavePages(longLivedToken, userId, clientId);
 
             return { success: true };
 
         } catch (error) {
             console.error('OAuth Exchange Error:', error.response?.data || error.message);
-            throw new Error('Failed to connect Facebook account.');
+            // Extract specific error message from Facebook response if available
+            const fbError = error.response?.data?.error?.message;
+            if (fbError) {
+                throw new Error(`Facebook Error: ${fbError}`);
+            }
+            throw new Error(`Failed to connect Facebook account: ${error.message}`);
         }
     }
 
     /**
      * Uses the User Token to find all Pages they manage and stores them.
      */
-    async fetchAndSavePages(userAccessToken, userId) {
+    async fetchAndSavePages(userAccessToken, userId, clientId = null) {
         try {
             const response = await axios.get(`${FB_GRAPH_URL}/me/accounts`, {
                 params: {
@@ -82,12 +105,30 @@ class MetaService {
                 },
             });
 
-            const pages = response.data.data;
+            // Check for Facebook API errors
+            if (response.data.error) {
+                console.error('Facebook API Error:', response.data.error);
+                throw new Error(`Facebook API Error: ${response.data.error.message || 'Unknown error'}`);
+            }
+
+            // Handle case where user has no pages or response structure is different
+            const pages = response.data?.data || [];
+            
+            if (!Array.isArray(pages)) {
+                console.error('Unexpected Facebook API response structure:', response.data);
+                throw new Error('Invalid response from Facebook API');
+            }
+
+            if (pages.length === 0) {
+                console.warn('User has no Facebook pages to connect');
+                return; // No pages to save, but this is not an error
+            }
 
             for (const page of pages) {
                 // Save Facebook Page Connection
                 await PlatformConnection.upsert({
-                    userId: userId,
+                    clientId: clientId,
+                    userId: userId, // Keep userId for history/audit, but clientId establishes the ownership scope
                     platform: 'facebook',
                     pageId: page.id,
                     pageName: page.name,
@@ -98,6 +139,7 @@ class MetaService {
                 // Check for linked Instagram Business Account
                 if (page.instagram_business_account) {
                     await PlatformConnection.upsert({
+                        clientId: clientId,
                         userId: userId,
                         platform: 'instagram',
                         pageId: page.id, // Linked to this FB Page

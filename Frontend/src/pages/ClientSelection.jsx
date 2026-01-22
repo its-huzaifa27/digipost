@@ -30,6 +30,7 @@ export function ClientSelection() {
                     name: c.client_name,
                     industry: c.industry || 'General',
                     logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
+                    connections: c.connections || [],
                     stats: {
                         totalPosts: 0, // Placeholder
                         followers: '0'   // Placeholder

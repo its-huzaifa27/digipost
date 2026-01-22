@@ -1,53 +1,61 @@
 import Client from '../models/client.model.js';
-import User from '../models/user.model.js';
+import PlatformConnection from '../models/platformConnection.model.js';
 
 // Create a new client
 export const createClient = async (req, res) => {
     try {
-        const { 
-            client_name, 
-            industry, 
-            brand_description, 
-            instagram_enabled, 
-            facebook_enabled, 
-            twitter_enabled,
-            linkedin_enabled,
-            whatsapp_enabled,
-            pinterest_enabled,
-            tiktok_enabled
-        } = req.body;
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        // Ensure user is authenticated (added via middleware ideally, but checking request here)
-        // Assuming auth middleware populates req.user
-        // For now, if req.user is missing, we might need to rely on a passed moderator_id or handle unauthorized.
-        // We will assume auth middleware is running.
-        
-        // Since we are using the simple auth from before which might not set req.user in a standardized way yet
-        // Let's assume the frontend sends the token and the auth middleware decodes it to req.user.
-        // If req.user.id is not available, we fail.
-        
-        // Note: We need to make sure the auth middleware is applied to this route.
-        const moderator_id = req.user?.id; 
+        // Accept both legacy snake_case (frontend) and camelCase (model) inputs
+        const name = req.body.client_name ?? req.body.name;
+        const industry = req.body.industry ?? null;
+        const brandDescription = req.body.brand_description ?? req.body.brandDescription ?? null;
 
-        if (!moderator_id) {
-            return res.status(401).json({ error: 'Unauthorized: User ID missing from request' });
+        const instagramEnabled = !!(req.body.instagram_enabled ?? req.body.instagramEnabled);
+        const facebookEnabled = !!(req.body.facebook_enabled ?? req.body.facebookEnabled);
+        const twitterEnabled = !!(req.body.twitter_enabled ?? req.body.twitterEnabled);
+        const linkedinEnabled = !!(req.body.linkedin_enabled ?? req.body.linkedinEnabled);
+        const whatsappEnabled = !!(req.body.whatsapp_enabled ?? req.body.whatsappEnabled);
+        const pinterestEnabled = !!(req.body.pinterest_enabled ?? req.body.pinterestEnabled);
+        const tiktokEnabled = !!(req.body.tiktok_enabled ?? req.body.tiktokEnabled);
+
+        if (!name || String(name).trim().length < 2) {
+            return res.status(400).json({ error: 'Client name is required' });
         }
 
         const newClient = await Client.create({
-            moderator_id,
-            client_name,
+            userId,
+            name: String(name).trim(),
             industry,
-            brand_description,
-            instagram_enabled,
-            facebook_enabled,
-            twitter_enabled,
-            linkedin_enabled,
-            whatsapp_enabled,
-            pinterest_enabled,
-            tiktok_enabled
+            brandDescription,
+            instagramEnabled,
+            facebookEnabled,
+            twitterEnabled,
+            linkedinEnabled,
+            whatsappEnabled,
+            pinterestEnabled,
+            tiktokEnabled
         });
 
-        res.status(201).json({ message: 'Client created successfully', client: newClient });
+        res.status(201).json({
+            message: 'Client created successfully',
+            client: {
+                id: newClient.id,
+                client_name: newClient.name,
+                industry: newClient.industry,
+                brand_description: newClient.brandDescription,
+                instagram_enabled: newClient.instagramEnabled,
+                facebook_enabled: newClient.facebookEnabled,
+                twitter_enabled: newClient.twitterEnabled,
+                linkedin_enabled: newClient.linkedinEnabled,
+                whatsapp_enabled: newClient.whatsappEnabled,
+                pinterest_enabled: newClient.pinterestEnabled,
+                tiktok_enabled: newClient.tiktokEnabled,
+                createdAt: newClient.createdAt,
+                updatedAt: newClient.updatedAt
+            }
+        });
 
     } catch (error) {
         console.error('Error creating client:', error);
@@ -58,19 +66,50 @@ export const createClient = async (req, res) => {
 // Get all clients for the logged-in moderator
 export const getClients = async (req, res) => {
     try {
-        const moderator_id = req.user?.id;
-
-        if (!moderator_id) {
-            // Check if we can get it from query (for debugging) or fail
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = req.user?.id;
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
         const clients = await Client.findAll({
-            where: { moderator_id },
-            order: [['created_at', 'DESC']]
+            where: { userId },
+            order: [['createdAt', 'DESC']],
+            include: [{ model: PlatformConnection }]
         });
 
-        res.status(200).json(clients);
+        // Return in a frontend-friendly legacy shape (snake_case) while we transition
+        const response = clients.map((c) => {
+            const connections = c.PlatformConnections || [];
+            const isConnected = (platform) =>
+                connections.some((pc) => pc.platform === platform && pc.isActive);
+
+            return {
+                id: c.id,
+                client_name: c.name,
+                industry: c.industry,
+                brand_description: c.brandDescription,
+                instagram_enabled: c.instagramEnabled || isConnected('instagram'),
+                facebook_enabled: c.facebookEnabled || isConnected('facebook'),
+                twitter_enabled: c.twitterEnabled || isConnected('twitter'),
+                linkedin_enabled: c.linkedinEnabled || isConnected('linkedin'),
+                whatsapp_enabled: c.whatsappEnabled,
+                pinterest_enabled: c.pinterestEnabled,
+                tiktok_enabled: c.tiktokEnabled,
+                // Per-client connection details for UI display (no tokens returned)
+                connections: connections
+                    .filter((pc) => pc.isActive)
+                    .map((pc) => ({
+                        id: pc.id,
+                        platform: pc.platform,
+                        pageName: pc.pageName,
+                        pageId: pc.pageId,
+                        platformUserId: pc.platformUserId,
+                        igBusinessId: pc.igBusinessId
+                    })),
+                createdAt: c.createdAt,
+                updatedAt: c.updatedAt
+            };
+        });
+
+        res.status(200).json(response);
     } catch (error) {
         console.error('Error fetching clients:', error);
         res.status(500).json({ error: 'Failed to fetch clients' });

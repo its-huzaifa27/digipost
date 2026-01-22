@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaWhatsapp, FaPinterest, FaTiktok } from 'react-icons/fa6';
 import { clsx } from 'clsx';
 import { Button } from '../ui/Button';
 
 export function ConnectedPlatformsWidget({ client }) {
-    if (!client) return null;
+    const clientId = client?.id;
+
+    const [connections, setConnections] = useState([]);
+
+    const connectedPlatforms = useMemo(() => {
+        if (!connections) return new Set();
+        return new Set(connections.map((c) => c.platform));
+    }, [connections]);
 
     const platformIcons = [
         { id: 'instagram', label: 'Instagram', icon: <FaInstagram />, color: 'bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white' },
@@ -16,13 +23,43 @@ export function ConnectedPlatformsWidget({ client }) {
         { id: 'tiktok', label: 'TikTok', icon: <FaTiktok />, color: 'bg-black text-white' },
     ];
 
+    const fetchConnections = async () => {
+        if (!clientId) return;
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/api/meta/pages?clientId=${encodeURIComponent(clientId)}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            setConnections(Array.isArray(data) ? data : []);
+        } catch (e) {
+            console.error('Failed to load platform connections', e);
+        }
+    };
+
+    useEffect(() => {
+        if (clientId) {
+            fetchConnections();
+        } else {
+            setConnections([]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [clientId]);
+
+    if (!client) return null;
+
     const handleConnect = async (platformId) => {
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
 
             // For Facebook and Instagram, use the new Production Meta Service
             if (platformId === 'facebook' || platformId === 'instagram') {
-                const response = await fetch(`${API_URL}/api/meta/auth-url`);
+                const response = await fetch(`${API_URL}/api/meta/auth-url`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await response.json();
 
                 if (data.url) {
@@ -34,7 +71,9 @@ export function ConnectedPlatformsWidget({ client }) {
             }
 
             // Legacy/Other platforms
-            const response = await fetch(`${API_URL}/api/auth/connect/${platformId}`);
+            const response = await fetch(`${API_URL}/api/auth/connect/${platformId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
 
             if (!response.ok) throw new Error('Failed to get auth URL');
 
@@ -57,7 +96,7 @@ export function ConnectedPlatformsWidget({ client }) {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Connected Platforms</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
                 {platformIcons.map((p) => {
-                    const isConnected = client.platforms?.[p.id]?.connected;
+                    const isConnected = connectedPlatforms.has(p.id) || client.platforms?.[p.id]?.connected;
                     return (
                         <div
                             key={p.id}

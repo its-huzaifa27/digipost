@@ -25,11 +25,15 @@ export const upload = multer({ storage: storage });
 
 export const createPost = async (req, res) => {
     const userId = req.user.id; // From middleware
-    const { caption, platforms: platformsJson, scheduledTime } = req.body;
+    const { caption, platforms: platformsJson, scheduledTime, clientId } = req.body;
     const platforms = JSON.parse(platformsJson || '[]');
     const file = req.file;
 
-    console.log("Create Post Request:", { userId, caption, platforms, file: file?.filename, scheduledTime });
+    console.log("Create Post Request:", { userId, clientId, caption, platforms, file: file?.filename, scheduledTime });
+
+    if (!clientId) {
+        return res.status(400).json({ error: "clientId is required" });
+    }
 
     if (!file && platforms.length > 0) {
         // IG requires image, FB API is better with it usually
@@ -81,6 +85,7 @@ export const createPost = async (req, res) => {
         // 1. Create Post Record (Pending)
         const post = await Post.create({
             userId,
+            clientId,
             content: caption,
             mediaUrl: imageUrl,
             mediaType: file ? (file.mimetype.startsWith('video') ? 'video' : 'image') : 'text',
@@ -96,9 +101,9 @@ export const createPost = async (req, res) => {
             // But frontend currently sends 'facebook'/'instagram' strings.
             // We need to find the specific connection.
 
-            // Strategy: Find connection by platform name for this user.
+            // Strategy: Find connection by platform name for this user AND client.
             const connection = await PlatformConnection.findOne({
-                where: { userId, platform: platformId, isActive: true }
+                where: { userId, clientId, platform: platformId, isActive: true }
             });
 
             if (!connection) {

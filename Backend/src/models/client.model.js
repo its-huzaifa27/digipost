@@ -8,7 +8,7 @@ const Client = sequelize.define('Client', {
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    moderator_id: {
+    userId: {
         type: DataTypes.UUID,
         allowNull: false,
         references: {
@@ -16,7 +16,7 @@ const Client = sequelize.define('Client', {
             key: 'id'
         }
     },
-    client_name: {
+    name: {
         type: DataTypes.STRING,
         allowNull: false
     },
@@ -24,47 +24,25 @@ const Client = sequelize.define('Client', {
         type: DataTypes.STRING,
         allowNull: true
     },
-    brand_description: {
+    brandDescription: {
         type: DataTypes.TEXT,
         allowNull: true
     },
-    // Platform Flags
-    instagram_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    facebook_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    twitter_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    linkedin_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    whatsapp_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    pinterest_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    },
-    tiktok_enabled: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
-    }
+    // We can keep these flags or infer from connections, but keeping them is fine for UI toggles
+    instagramEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    facebookEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    twitterEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    linkedinEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    whatsappEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    pinterestEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    tiktokEnabled: { type: DataTypes.BOOLEAN, defaultValue: false }
 }, {
-    tableName: 'clients',
-    timestamps: true,
-    underscored: true // auto mapping to created_at, updated_at
+    tableName: 'Clients', // PascalCase table
+    timestamps: true
 });
 
 // Define Association
-User.hasMany(Client, { foreignKey: 'moderator_id' });
-Client.belongsTo(User, { foreignKey: 'moderator_id' });
+User.hasMany(Client, { foreignKey: 'userId' });
+Client.belongsTo(User, { foreignKey: 'userId' });
 
 export default Client;

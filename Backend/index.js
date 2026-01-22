@@ -8,6 +8,7 @@ import { connectDB } from './src/config/db.js';
 // Import Models to ensure they are synced
 import './src/models/user.model.js';
 import './src/models/platformConnection.model.js';
+import './src/models/client.model.js';
 import './src/models/post.model.js';
 import './src/models/postSchedule.model.js';
 

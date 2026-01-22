@@ -3,21 +3,21 @@ import User from '../models/user.model.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
-        const moderator_id = req.user?.id;
+        const userId = req.user?.id;
         const { clientId } = req.query;
 
-        if (!moderator_id) {
+        if (!userId) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
         // Logic to filter by client if provided
-        const whereClause = { moderator_id };
+        const whereClause = { userId };
         if (clientId && clientId !== 'all') {
             whereClause.id = clientId;
         }
 
         // 1. Fetch Clients (to verify ownership or count)
-        const clients = await Client.findAll({ where: { moderator_id } });
+        const clients = await Client.findAll({ where: { userId } });
 
         // 2. Calculate Stats
         // Since we don't have a real Post model with data yet, we will return 0s 
@@ -52,7 +52,7 @@ export const getDashboardStats = async (req, res) => {
             stats,
             clients: clients.map(c => ({
                 id: c.id,
-                name: c.client_name,
+                name: c.name,
                 industry: c.industry
             }))
         });

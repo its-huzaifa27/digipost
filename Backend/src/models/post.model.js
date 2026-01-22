@@ -11,6 +11,14 @@ const Post = sequelize.define('Post', {
         type: DataTypes.UUID,
         allowNull: false,
     },
+    clientId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'Clients',
+            key: 'id'
+        }
+    },
     content: {
         type: DataTypes.TEXT, // The caption/text
         allowNull: true,

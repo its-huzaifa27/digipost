@@ -27,6 +27,51 @@ const PlatformIcon = ({ platform, connected }) => {
     );
 };
 
+const ConnectionBadges = ({ connections }) => {
+    if (!connections || connections.length === 0) return null;
+
+    // Group by platform and show the connected page/account names
+    const byPlatform = connections.reduce((acc, c) => {
+        const key = c.platform;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(c);
+        return acc;
+    }, {});
+
+    const order = ['facebook', 'instagram', 'linkedin', 'twitter', 'whatsapp', 'pinterest', 'tiktok'];
+
+    return (
+        <div className="mt-3">
+            <p className="text-xs text-gray-400 mb-2 font-medium">Connected Accounts</p>
+            <div className="space-y-2">
+                {order.filter(p => byPlatform[p]).map((platform) => (
+                    <div key={platform} className="flex items-start gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500 w-20 shrink-0">
+                            {platform}
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                            {byPlatform[platform].slice(0, 2).map((c) => (
+                                <span
+                                    key={c.id}
+                                    className="text-xs px-2 py-0.5 rounded-full bg-gray-50 border border-gray-100 text-gray-700 max-w-[220px] truncate"
+                                    title={c.pageName || c.pageId || ''}
+                                >
+                                    {c.pageName || c.pageId || 'Connected'}
+                                </span>
+                            ))}
+                            {byPlatform[platform].length > 2 && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700">
+                                    +{byPlatform[platform].length - 2} more
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 export function ClientCard({ client, onManage }) {
     return (
         <motion.div
@@ -75,6 +120,7 @@ export function ClientCard({ client, onManage }) {
                             !client.platforms[p] && <PlatformIcon key={p} platform={p} connected={false} />
                         ))}
                     </div>
+                    <ConnectionBadges connections={client.connections} />
                 </div>
 
                 <Button
