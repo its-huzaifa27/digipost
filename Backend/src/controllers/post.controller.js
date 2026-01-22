@@ -95,47 +95,53 @@ export const createPost = async (req, res) => {
 
         const results = {};
 
-        // 2. Publish to selected platforms
-        for (const platformId of platforms) {
-            // platformId is 'facebook' or 'instagram' (but better to pass the CONNECTION ID if possible)
-            // But frontend currently sends 'facebook'/'instagram' strings.
-            // We need to find the specific connection.
-
-            // Strategy: Find connection by platform name for this user AND client.
-            const connection = await PlatformConnection.findOne({
-                where: { userId, clientId, platform: platformId, isActive: true }
-            });
-
-            if (!connection) {
-                results[platformId] = { success: false, error: 'No connected account found.' };
-                continue;
-            }
-
-            try {
-                let response;
-                if (platformId === 'facebook') {
-                    response = await metaService.publishToFacebook(connection, caption, imageUrl, scheduledTime);
-                } else if (platformId === 'instagram') {
-                    // Instagram-specific check for image
-                    if (!imageUrl) throw new Error("Instagram requires an image.");
-
-                    if (scheduledTime) {
-                        // Use the new scheduling method
-                        response = await metaService.scheduleInstagramPost(connection, caption, imageUrl, scheduledTime);
-                    } else {
-                        // Regular publish
+        // 2. Publish Logic
+        if (scheduledTime) {
+            // BACKEND SCHEDULING:
+            // Do not call Meta API. Just save as 'scheduled' and let CronService handle it.
+            console.log("📅 Post Scheduled for later. Saved to DB.");
+            post.status = 'scheduled';
+            post.scheduledAt = new Date(scheduledTime * 1000);
+            
+            // Keep image in Supabase (logic handled at end of file)
+        } else {
+            // IMMEDIATE PUBLISH:
+            for (const platformId of platforms) {
+                // platformId is 'facebook' or 'instagram' (but better to pass the CONNECTION ID if possible)
+                // But frontend currently sends 'facebook'/'instagram' strings.
+                // We need to find the specific connection.
+    
+                // Strategy: Find connection by platform name for this user AND client.
+                const connection = await PlatformConnection.findOne({
+                    where: { userId, clientId, platform: platformId, isActive: true }
+                });
+    
+                if (!connection) {
+                    results[platformId] = { success: false, error: 'No connected account found.' };
+                    continue;
+                }
+    
+                try {
+                    let response;
+                    if (platformId === 'facebook') {
+                        response = await metaService.publishToFacebook(connection, caption, imageUrl, scheduledTime);
+                    } else if (platformId === 'instagram') {
+                        // Instagram-specific check for image
+                        if (!imageUrl) throw new Error("Instagram requires an image.");
+    
+                        // Regular publish (LIVE only)
                         response = await metaService.publishToInstagram(connection, caption, imageUrl);
                     }
+                    results[platformId] = {
+                        success: true,
+                        response: response?.data || response,
+                        scheduledTime: null
+                    };
+                } catch (err) {
+                    const errorDetail = err.response?.data || err.message;
+                    console.error(`Publish failed for ${platformId}:`, errorDetail);
+                    results[platformId] = { success: false, error: errorDetail };
                 }
-                results[platformId] = {
-                    success: true,
-                    response: response?.data || response,
-                    scheduledTime: scheduledTime || null
-                };
-            } catch (err) {
-                const errorDetail = err.response?.data || err.message;
-                console.error(`Publish failed for ${platformId}:`, errorDetail);
-                results[platformId] = { success: false, error: errorDetail };
             }
         }
 
@@ -158,20 +164,19 @@ export const createPost = async (req, res) => {
 
         // 4. Update Post Record
         post.results = results;
-        if (scheduledTime) {
-            post.scheduledAt = new Date(scheduledTime * 1000);
-        }
 
-        // Determine overall status
-        const failures = Object.values(results).filter(r => !r.success).length;
-        const successes = Object.values(results).filter(r => r.success).length;
+        // Determine overall status (if not already set to scheduled)
+        if (!scheduledTime) {
+            const failures = Object.values(results).filter(r => !r.success).length;
+            const successes = Object.values(results).filter(r => r.success).length;
 
-        if (failures === 0 && successes > 0) {
-            post.status = scheduledTime ? 'scheduled' : 'published';
-        } else if (successes === 0 && failures > 0) {
-            post.status = 'failed';
-        } else {
-            post.status = 'partial'; // Mixed
+            if (failures === 0 && successes > 0) {
+                post.status = 'published';
+            } else if (successes === 0 && failures > 0) {
+                post.status = 'failed';
+            } else {
+                post.status = 'partial'; // Mixed
+            }
         }
 
         await post.save();

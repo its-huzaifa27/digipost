@@ -18,6 +18,7 @@ import clientRoutes from './src/routes/client.routes.js';
 import dashboardRoutes from './src/routes/dashboard.routes.js';
 import authApiRoutes from './src/routes/auth.api.routes.js';
 import metaRoutes from './src/routes/meta.routes.js';
+import cronService from './src/services/cron.service.js';
 
 dotenv.config();
 
@@ -29,6 +30,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Initialize Cron
+cronService.start();
 
 app.use(cors());
 app.use(express.json());

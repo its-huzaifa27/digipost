@@ -58,4 +58,28 @@ router.get('/pages', authenticateToken, async (req, res) => {
     }
 });
 
+// 4. Disconnect Accounts (Specific Platform or All)
+router.post('/disconnect', authenticateToken, async (req, res) => {
+    const { clientId, platform } = req.body;
+    const userId = req.user.id;
+
+    if (!clientId) return res.status(400).json({ error: 'clientId is required' });
+
+    try {
+        const query = { clientId, userId };
+        if (platform) {
+            query.platform = platform;
+        }
+
+        const deletedCount = await PlatformConnection.destroy({
+            where: query
+        });
+        
+        res.json({ success: true, message: 'Disconnected successfully', count: deletedCount });
+    } catch (error) {
+        console.error('Disconnect Error:', error);
+        res.status(500).json({ error: 'Failed to disconnect accounts' });
+    }
+});
+
 export default router;

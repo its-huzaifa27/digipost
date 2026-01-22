@@ -50,6 +50,33 @@ export function ConnectedPlatformsWidget({ client }) {
 
     if (!client) return null;
 
+    const handleDisconnect = async (platformId) => {
+        if (!confirm(`Are you sure you want to disconnect ${platformId}?`)) return;
+
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_URL}/api/meta/disconnect`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ clientId, platform: platformId })
+            });
+
+            if (response.ok) {
+                // Refresh list
+                fetchConnections();
+            } else {
+                alert("Failed to disconnect");
+            }
+        } catch (error) {
+            console.error("Disconnect error:", error);
+        }
+    };
+
     const handleConnect = async (platformId) => {
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -100,15 +127,14 @@ export function ConnectedPlatformsWidget({ client }) {
                     return (
                         <div
                             key={p.id}
-                            /* Add onClick handler only if not connected */
-                            onClick={() => !isConnected && handleConnect(p.id)}
+                            onClick={() => isConnected ? handleDisconnect(p.id) : handleConnect(p.id)}
                             className={clsx(
                                 "flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-200",
                                 isConnected
-                                    ? "bg-gray-50 border-gray-100 cursor-default"
+                                    ? "bg-gray-50 border-gray-100 cursor-pointer hover:bg-red-50 hover:border-red-200"
                                     : "bg-white border-gray-100 border-dashed opacity-60 hover:opacity-100 hover:border-blue-300 hover:shadow-sm cursor-pointer group"
                             )}
-                            title={isConnected ? "Connected" : `Connect to ${p.label}`}
+                            title={isConnected ? `Click to Disconnect ${p.label}` : `Connect to ${p.label}`}
                         >
                             <div className={clsx(
                                 "w-10 h-10 rounded-full flex items-center justify-center text-lg mb-2 shadow-sm",

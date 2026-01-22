@@ -269,36 +269,7 @@ class MetaService {
         }
     }
 
-    async scheduleInstagramPost(connection, caption, imageUrl, scheduledTime) {
-        try {
-            if (!imageUrl) {
-                throw new Error("Instagram requires an image.");
-            }
 
-            const params = new URLSearchParams();
-            params.append("image_url", imageUrl);
-            params.append("caption", caption);
-            params.append("published", "false");
-            params.append("scheduled_publish_time", scheduledTime); // UNIX timestamp
-            params.append("access_token", connection.accessToken);
-
-            const res = await axios.post(
-                `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
-                params
-            );
-
-            const creationId = res.data.id;
-
-            // CRITICAL: Wait for IG to fetch and process the image from Supabase 
-            // before we return (and subsequently delete the image from Supabase).
-            await this._waitForInstagramMedia(creationId, connection.accessToken);
-
-            return res.data; // container id
-        } catch (error) {
-            console.error("IG Schedule Error:", error.response?.data || error.message);
-            throw error;
-        }
-    }
 
 }
 
