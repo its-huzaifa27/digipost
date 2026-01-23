@@ -27,7 +27,7 @@ router.post('/callback', authenticateToken, async (req, res) => {
         // Ensure the selected client belongs to the logged-in user
         const client = await Client.findOne({ where: { id: clientId, userId } });
         console.log(`[MetaCallback] Client Lookup Result:`, client ? 'Found' : 'NOT FOUND');
-        
+
         if (!client) return res.status(404).json({ error: 'Client not found' });
 
         await metaService.exchangeCodeForToken(code, userId, clientId);
@@ -74,11 +74,33 @@ router.post('/disconnect', authenticateToken, async (req, res) => {
         const deletedCount = await PlatformConnection.destroy({
             where: query
         });
-        
+
         res.json({ success: true, message: 'Disconnected successfully', count: deletedCount });
     } catch (error) {
         console.error('Disconnect Error:', error);
         res.status(500).json({ error: 'Failed to disconnect accounts' });
+    }
+});
+
+// 5. Get Instagram Insights
+router.get('/insights/:connectionId', authenticateToken, async (req, res) => {
+    const { connectionId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const connection = await PlatformConnection.findOne({
+            where: { id: connectionId, userId, isActive: true }
+        });
+
+        if (!connection) {
+            return res.status(404).json({ error: 'Connection not found or access denied' });
+        }
+
+        const insights = await metaService.getInstagramInsights(connection);
+        res.json(insights);
+    } catch (error) {
+        console.error('Insights Fetch Error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

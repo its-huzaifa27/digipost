@@ -23,6 +23,7 @@ class MetaService {
             'pages_manage_posts',
             'pages_read_engagement',
             'instagram_basic',
+            'instagram_manage_insights',
             'instagram_content_publish',
             'public_profile'
         ].join(',');
@@ -113,7 +114,7 @@ class MetaService {
 
             // Handle case where user has no pages or response structure is different
             const pages = response.data?.data || [];
-            
+
             if (!Array.isArray(pages)) {
                 console.error('Unexpected Facebook API response structure:', response.data);
                 throw new Error('Invalid response from Facebook API');
@@ -270,6 +271,61 @@ class MetaService {
     }
 
 
+    /**
+     * Fetches Instagram Insights (Followers, Reach, Impressions).
+     */
+    async getInstagramInsights(connection) {
+        console.log(`[IG_INSIGHTS] Starting fetch for: ${connection.pageName} (${connection.igBusinessId})`);
+
+        try {
+            if (!connection.igBusinessId) {
+                throw new Error("This connection is not linked to an Instagram Business account.");
+            }
+
+            // 1. Fetch Basic Info (Total Followers)
+            let profileData = {};
+            try {
+                const basicInfoResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}`, {
+                    params: {
+                        fields: 'followers_count,media_count,username,name',
+                        access_token: connection.accessToken
+                    }
+                });
+                profileData = basicInfoResponse.data;
+                console.log(`[IG_INSIGHTS] Profile fetch success: ${profileData.followers_count} followers`);
+            } catch (profileErr) {
+                console.error(`[IG_INSIGHTS] Profile fetch failed:`, profileErr.response?.data || profileErr.message);
+                // Continue despite profile failure? Or throw? Let's throw for now as it's critical
+                throw new Error(`Profile Error: ${profileErr.response?.data?.error?.message || profileErr.message}`);
+            }
+
+            // 2. Fetch Insights (Reach, follower_count)
+            let insightsData = [];
+            try {
+                const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'reach,follower_count',
+                        period: 'day',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = insightsResponse.data.data;
+                console.log(`[IG_INSIGHTS] Insights fetch success (reach, follower_count)`);
+            } catch (insightsErr) {
+                console.error(`[IG_INSIGHTS] Insights fetch failed:`, insightsErr.response?.data || insightsErr.message);
+                throw new Error(`Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
+            }
+
+            return {
+                profile: profileData,
+                insights: insightsData
+            };
+
+        } catch (error) {
+            console.error(`[IG_INSIGHTS] Global catch:`, error.message);
+            throw error; // Rethrow to let the route handle it
+        }
+    }
 
 }
 
