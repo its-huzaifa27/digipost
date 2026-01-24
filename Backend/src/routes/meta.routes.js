@@ -96,7 +96,15 @@ router.get('/insights/:connectionId', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Connection not found or access denied' });
         }
 
-        const insights = await metaService.getInstagramInsights(connection);
+        let insights;
+        if (connection.platform === 'facebook') {
+            insights = await metaService.getFacebookInsights(connection);
+        } else if (connection.platform === 'instagram') {
+            insights = await metaService.getInstagramInsights(connection);
+        } else {
+            return res.status(400).json({ error: `Analytics not supported for platform: ${connection.platform}` });
+        }
+
         res.json(insights);
     } catch (error) {
         console.error('Insights Fetch Error:', error);

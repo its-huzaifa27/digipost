@@ -327,6 +327,63 @@ class MetaService {
         }
     }
 
+    /**
+     * Fetches Facebook Page Insights (Likes, Impressions, Engagement).
+     */
+    async getFacebookInsights(connection) {
+        console.log(`[FB_INSIGHTS] Starting fetch for: ${connection.pageName} (${connection.pageId})`);
+
+        try {
+            // 1. Fetch Page Profile (Picture, Name, Total Likes)
+            let profileData = {};
+            try {
+                const pageResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}`, {
+                    params: {
+                        fields: 'name,fan_count,picture{url}', // fan_count = Total Likes
+                        access_token: connection.accessToken
+                    }
+                });
+                profileData = {
+                    name: pageResponse.data.name,
+                    followers_count: pageResponse.data.fan_count, // Mapping to generic structure
+                    profile_picture_url: pageResponse.data.picture?.data?.url
+                };
+                console.log(`[FB_INSIGHTS] Profile fetch success: ${profileData.followers_count} likes`);
+            } catch (profileErr) {
+                console.error(`[FB_INSIGHTS] Profile fetch failed:`, profileErr.response?.data || profileErr.message);
+                throw new Error(`Facebook Profile Error: ${profileErr.response?.data?.error?.message || profileErr.message}`);
+            }
+
+            // 2. Fetch Insights (Impressions, Engaged Users)
+            // Note: 'page_impressions' and 'page_engaged_users' are common metrics.
+            let insightsData = [];
+            try {
+                const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
+                    params: {
+                        metric: 'page_impressions,page_post_engagements', // Returning to safe list as per user request
+                        period: 'day',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = insightsResponse.data.data;
+                console.log(`[FB_INSIGHTS] Insights fetch success`);
+            } catch (insightsErr) {
+                console.error(`[FB_INSIGHTS] Insights fetch failed:`, insightsErr.response?.data || insightsErr.message);
+                // Non-critical if insights fail but profile works? Maybe. But let's error for now.
+                throw new Error(`Facebook Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
+            }
+
+            return {
+                profile: profileData,
+                insights: insightsData
+            };
+
+        } catch (error) {
+            console.error(`[FB_INSIGHTS] Global catch:`, error.message);
+            throw error;
+        }
+    }
+
 }
 
 export default new MetaService();
