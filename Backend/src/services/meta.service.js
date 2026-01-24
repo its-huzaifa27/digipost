@@ -424,7 +424,7 @@ class MetaService {
             try {
                 const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
                     params: {
-                        metric: 'page_impressions,page_post_engagements', // Returning to safe list as per user request
+                        metric: 'page_impressions_unique,page_daily_active_users,page_views_total', // Returning to safe list as per user request
                         period: 'day',
                         access_token: connection.accessToken
                     }

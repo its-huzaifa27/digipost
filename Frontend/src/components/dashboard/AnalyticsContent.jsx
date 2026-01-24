@@ -94,7 +94,7 @@ export function AnalyticsContent() {
     const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values[0]?.value || 0;
 
     return (
-        <div className="space-y-8 bg-[#0a0a0c] min-h-screen p-4 md:p-8 text-white rounded-3xl">
+        <div className="space-y-8 bg-gray-600 min-h-screen p-4 md:p-8 text-white rounded-3xl">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
