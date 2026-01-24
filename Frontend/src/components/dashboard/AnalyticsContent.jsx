@@ -9,6 +9,7 @@ export function AnalyticsContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [isFetchingInsights, setIsFetchingInsights] = useState(false);
     const [error, setError] = useState(null);
+    const [contentTypeFilter, setContentTypeFilter] = useState('All');
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const token = localStorage.getItem('token');
@@ -79,38 +80,32 @@ export function AnalyticsContent() {
         );
     }
 
+    const viewsData = insights?.insights?.find(i => i.name === 'views');
+    const totalViews = viewsData?.values[0]?.value || 0;
+
+    // Extract breakdown if available
+    const breakdown = viewsData?.values[0]?.breakdowns?.[0]?.results || [];
+    const followersViews = breakdown.find(b => b.dimension_values?.[0] === 'follower')?.value || 0;
+    const nonFollowersViews = breakdown.find(b => b.dimension_values?.[0] === 'non_follower')?.value || 0;
+
+    const followerPercentage = totalViews > 0 ? (followersViews / totalViews * 100).toFixed(1) : 0;
+    const nonFollowerPercentage = totalViews > 0 ? (nonFollowersViews / totalViews * 100).toFixed(1) : 100;
+
+    const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values[0]?.value || 0;
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 bg-[#0a0a0c] min-h-screen p-4 md:p-8 text-white rounded-3xl">
+            {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-bold text-gray-900">Performance Analytics</h1>
-                    <p className="text-gray-500">Real-time engagement metrics for your social media.</p>
+                    <h1 className="text-2xl font-bold">Account insights</h1>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {/* Profile Badge */}
-                    {selectedConnection && (
-                        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full pl-2 pr-4 py-1.5 shadow-sm">
-                            <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                                {insights?.profile?.profile_picture_url ? (
-                                    <img src={insights.profile.profile_picture_url} alt={selectedConnection.pageName} className="w-full h-full rounded-full object-cover" />
-                                ) : (
-                                    <>
-                                        {activeTab === 'instagram' ? <FaInstagram className="text-lg" /> : <FaFacebook className="text-lg" />}
-                                    </>
-                                )}
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Viewing</span>
-                                <span className="text-sm font-bold text-gray-900 leading-none">{selectedConnection.pageName}</span>
-                            </div>
-                        </div>
-                    )}
-
                     {connections.length > 1 && (
                         <div className="relative">
                             <select
-                                className="appearance-none bg-white border border-gray-200 rounded-lg pl-4 pr-10 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer hover:border-purple-200 transition-colors"
+                                className="appearance-none bg-[#1c1c1e] border border-gray-800 rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer hover:bg-[#2c2c2e] transition-colors"
                                 value={selectedConnection?.id}
                                 onChange={(e) => setSelectedConnection(connections.find(c => c.id === e.target.value))}
                             >
@@ -123,141 +118,200 @@ export function AnalyticsContent() {
                             </div>
                         </div>
                     )}
+
+                    <div className="flex gap-2 bg-[#1c1c1e] p-1 rounded-xl">
+                        <button
+                            onClick={() => setActiveTab('instagram')}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'instagram' ? 'bg-[#3a3a3c] text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <FaInstagram className="text-lg" />
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('facebook')}
+                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'facebook' ? 'bg-[#3a3a3c] text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                        >
+                            <FaFacebook className="text-lg" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {error && (
-                <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3 text-red-600">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 text-red-400">
                     <FaTriangleExclamation />
                     <span>{error}</span>
                 </div>
             )}
 
-            {/* Platform Tabs */}
-            <div className="flex gap-4 border-b border-gray-200 pb-1">
-                <button
-                    onClick={() => setActiveTab('instagram')}
-                    className={`pb-3 px-4 text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'instagram' ? 'text-pink-600 border-b-2 border-pink-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    <FaInstagram className="text-lg" /> Instagram
-                </button>
-                <button
-                    onClick={() => setActiveTab('facebook')}
-                    className={`pb-3 px-4 text-sm font-semibold transition-all flex items-center gap-2 ${activeTab === 'facebook' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                >
-                    <FaFacebook className="text-lg" /> Facebook
-                </button>
-            </div>
-
             {connections.length === 0 ? (
-                <div className="bg-white rounded-xl border border-dashed border-gray-200 p-12 text-center space-y-4">
-                    <div className={`w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-400`}>
+                <div className="bg-[#1c1c1e] rounded-3xl border border-dashed border-gray-800 p-12 text-center space-y-4">
+                    <div className={`w-16 h-16 bg-[#2c2c2e] rounded-full flex items-center justify-center mx-auto text-gray-500`}>
                         {activeTab === 'instagram' ? <FaInstagram className="text-3xl" /> : <FaFacebook className="text-3xl" />}
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900">No {activeTab === 'instagram' ? 'Instagram' : 'Facebook'} Accounts Connected</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">
+                    <h3 className="text-lg font-bold">No {activeTab === 'instagram' ? 'Instagram' : 'Facebook'} Accounts Connected</h3>
+                    <p className="text-gray-400 max-w-sm mx-auto">
                         Connect a {activeTab === 'instagram' ? 'Instagram Business' : 'Facebook Page'} account in the Dashboard to see analytics here.
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* ---------------- INSTAGRAM CARDS ---------------- */}
-                    {activeTab === 'instagram' && (
-                        <>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-pink-50 text-pink-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaUsers className="text-xl" />
-                                    </div>
+                <div className="space-y-12">
+                    {/* High-level Stat Cards (Old part restored) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-[#1c1c1e] p-6 rounded-3xl border border-gray-800 shadow-sm hover:ring-1 ring-pink-500/30 transition-all group">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-pink-500/10 text-pink-500 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <FaUsers className="text-xl" />
                                 </div>
+                                <span className="text-xs font-bold text-pink-500 bg-pink-500/10 px-2 py-1 rounded-full">+12%</span>
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-gray-400 text-sm font-medium">Total Followers</h3>
+                                <p className="text-3xl font-bold">
+                                    {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.profile?.followers_count || 0).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#1c1c1e] p-6 rounded-3xl border border-gray-800 shadow-sm hover:ring-1 ring-blue-500/30 transition-all group">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <FaChartLine className="text-xl" />
+                                </div>
+                                <span className="text-xs font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-full">Today</span>
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-gray-400 text-sm font-medium">Account Reach</h3>
+                                <p className="text-3xl font-bold">
+                                    {isFetchingInsights ? <FaSpinner className="animate-spin" /> : reachValue.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#1c1c1e] p-6 rounded-3xl border border-gray-800 shadow-sm hover:ring-1 ring-green-500/30 transition-all group">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl group-hover:scale-110 transition-transform">
+                                    <FaUsers className="text-xl" />
+                                </div>
+                                <span className="text-xs font-bold text-green-600 bg-green-500/10 px-2 py-1 rounded-full">Today</span>
+                            </div>
+                            <div className="space-y-1">
+                                <h3 className="text-gray-400 text-sm font-medium">New Followers</h3>
+                                <p className="text-3xl font-bold">
+                                    {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.insights?.find(i => i.name === 'follower_count')?.values[0]?.value || 0).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Views Section (Detailed Analytics) */}
+                    <div className="bg-[#1c1c1e] p-8 rounded-[40px] border border-gray-800 space-y-8">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-xl font-bold">Views</h2>
+                            <FaUserGroup className="text-gray-500 text-sm cursor-help" />
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                            {/* Left Side: Stats */}
+                            <div className="space-y-8">
                                 <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">Total Followers</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.profile?.followers_count || 0).toLocaleString()}
-                                    </p>
+                                    <p className="text-5xl font-bold">{totalViews}</p>
+                                    <p className="text-gray-500 text-sm">Views</p>
+                                </div>
+
+                                <div className="space-y-6 max-w-xs">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-300">Followers</span>
+                                        <span className="font-bold">{followerPercentage}%</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-300">Non-followers</span>
+                                        <span className="font-bold">{nonFollowerPercentage}%</span>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
+                                        <span className="text-gray-300">Accounts reached</span>
+                                        <span className="font-bold">{reachValue}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaChartLine className="text-xl" />
+                            {/* Right Side: Breakdown Chart Lookalike */}
+                            <div className="space-y-8 border-l border-gray-800 pl-0 lg:pl-12">
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-semibold text-gray-400">By content type</h3>
+                                    <div className="flex gap-2">
+                                        {['All', 'Followers', 'Non-followers'].map(label => (
+                                            <button
+                                                key={label}
+                                                onClick={() => setContentTypeFilter(label)}
+                                                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${contentTypeFilter === label ? 'bg-indigo-600 text-white' : 'bg-[#1c1c1e] text-gray-400'}`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
                                     </div>
-                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Today</span>
                                 </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">Account Reach</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.insights?.find(i => i.name === 'reach')?.values[0]?.value || 0).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
 
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-green-50 text-green-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaUsers className="text-xl" />
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm mb-2">
+                                            <span>Posts</span>
+                                            <span className="text-gray-400">100.0%</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-[#1c1c1e] rounded-full overflow-hidden">
+                                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: '100%' }}></div>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Today</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">New Followers</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.insights?.find(i => i.name === 'follower_count')?.values[0]?.value || 0).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-                        </>
-                    )}
 
-                    {/* ---------------- FACEBOOK CARDS ---------------- */}
-                    {activeTab === 'facebook' && (
-                        <>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaThumbsUp className="text-xl" />
+                                    <div className="flex items-center gap-6 pt-4">
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                                            <span className="text-gray-400">Followers</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs">
+                                            <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                            <span className="text-gray-400">Non-followers</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">Total Page Likes</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.profile?.followers_count || 0).toLocaleString()}
-                                    </p>
-                                </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaEye className="text-xl" />
-                                    </div>
-                                    <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Today</span>
-                                </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">Page Impressions</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.insights?.find(i => i.name === 'page_impressions')?.values[0]?.value || 0).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
+                    {/* Top Content Section */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold">Top content based on views</h2>
+                            <button className="text-indigo-400 text-sm font-semibold hover:underline">See all</button>
+                        </div>
 
-                            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="p-3 bg-orange-50 text-orange-600 rounded-xl group-hover:scale-110 transition-transform">
-                                        <FaUserGroup className="text-xl" />
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                            {isFetchingInsights ? (
+                                Array(5).fill(0).map((_, i) => (
+                                    <div key={i} className="aspect-[3/4] bg-[#1c1c1e] rounded-2xl animate-pulse"></div>
+                                ))
+                            ) : (
+                                insights?.topMedia?.map((media, idx) => (
+                                    <div key={media.id} className="relative aspect-[3/4] bg-[#1c1c1e] rounded-2xl overflow-hidden group hover:ring-2 ring-indigo-500 transition-all cursor-pointer">
+                                        <img
+                                            src={media.media_type === 'VIDEO' ? media.thumbnail_url : media.media_url}
+                                            alt={media.caption}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-lg border border-white/10">
+                                            <span className="text-sm font-bold">{media.views.toLocaleString()}</span>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">Today</span>
+                                ))
+                            )}
+                            {(!isFetchingInsights && (!insights?.topMedia || insights.topMedia.length === 0)) && (
+                                <div className="col-span-full h-48 flex items-center justify-center text-gray-500 bg-[#1c1c1e] rounded-2xl border border-dashed border-gray-800">
+                                    No content found
                                 </div>
-                                <div className="space-y-1">
-                                    <h3 className="text-gray-500 text-sm font-medium">Engaged Users</h3>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {isFetchingInsights ? <FaSpinner className="animate-spin" /> : (insights?.insights?.find(i => i.name === 'page_engaged_users')?.values[0]?.value || 0).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

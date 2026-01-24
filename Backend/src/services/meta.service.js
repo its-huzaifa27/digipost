@@ -287,7 +287,7 @@ class MetaService {
             try {
                 const basicInfoResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}`, {
                     params: {
-                        fields: 'followers_count,media_count,username,name',
+                        fields: 'followers_count,media_count,username,name,profile_picture_url',
                         access_token: connection.accessToken
                     }
                 });
@@ -295,35 +295,99 @@ class MetaService {
                 console.log(`[IG_INSIGHTS] Profile fetch success: ${profileData.followers_count} followers`);
             } catch (profileErr) {
                 console.error(`[IG_INSIGHTS] Profile fetch failed:`, profileErr.response?.data || profileErr.message);
-                // Continue despite profile failure? Or throw? Let's throw for now as it's critical
                 throw new Error(`Profile Error: ${profileErr.response?.data?.error?.message || profileErr.message}`);
             }
 
-            // 2. Fetch Insights (Reach, follower_count)
+            // 2. Fetch Insights (Reach, Views, Interactions, etc.)
             let insightsData = [];
+            
+            // Block A: Metrics requiring 'total_value' (including views breakdown)
             try {
-                const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                const totalValueInsights = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
-                        metric: 'reach,follower_count',
+                        metric: 'views,reach,total_interactions,accounts_engaged,profile_views',
+                        period: 'day',
+                        breakdown: 'follow_type',
+                        metric_type: 'total_value',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(totalValueInsights.data.data || [])];
+                console.log(`[IG_INSIGHTS] Block A (total_value) success`);
+            } catch (errA) {
+                console.warn(`[IG_INSIGHTS] Block A failed:`, errA.response?.data?.error?.message || errA.message);
+                // Fallback for Block A without breakdown/total_value if needed
+                try {
+                    const fallbackA = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                        params: {
+                            metric: 'reach,impressions',
+                            period: 'day',
+                            access_token: connection.accessToken
+                        }
+                    });
+                    insightsData = [...insightsData, ...(fallbackA.data.data || [])];
+                } catch (innerA) {
+                    console.error(`[IG_INSIGHTS] Fallback A failed:`, innerA.message);
+                }
+            }
+
+            // Block B: Metrics NOT using 'total_value' (follower_count, etc.)
+            try {
+                const standardInsights = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'follower_count,profile_links_taps',
                         period: 'day',
                         access_token: connection.accessToken
                     }
                 });
-                insightsData = insightsResponse.data.data;
-                console.log(`[IG_INSIGHTS] Insights fetch success (reach, follower_count)`);
-            } catch (insightsErr) {
-                console.error(`[IG_INSIGHTS] Insights fetch failed:`, insightsErr.response?.data || insightsErr.message);
-                throw new Error(`Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
+                insightsData = [...insightsData, ...(standardInsights.data.data || [])];
+                console.log(`[IG_INSIGHTS] Block B success`);
+            } catch (errB) {
+                console.warn(`[IG_INSIGHTS] Block B failed:`, errB.response?.data?.error?.message || errB.message);
+            }
+
+            // 3. Fetch Top Media
+            let topMedia = [];
+            try {
+                const mediaResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, {
+                    params: {
+                        fields: 'id,media_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count',
+                        limit: 10,
+                        access_token: connection.accessToken
+                    }
+                });
+
+                const mediaList = mediaResponse.data.data || [];
+
+                // Fetch insights for each media item to get views/impressions
+                topMedia = await Promise.all(mediaList.map(async (media) => {
+                    try {
+                        const mInsights = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                            params: {
+                                metric: media.media_type === 'VIDEO' ? 'plays' : 'impressions',
+                                access_token: connection.accessToken
+                            }
+                        });
+                        const views = mInsights.data.data.find(i => i.name === 'plays' || i.name === 'impressions')?.values[0]?.value || 0;
+                        return { ...media, views };
+                    } catch (err) {
+                        return { ...media, views: 0 };
+                    }
+                }));
+                console.log(`[IG_INSIGHTS] Top media fetch success`);
+            } catch (mediaErr) {
+                console.warn(`[IG_INSIGHTS] Top media fetch failed:`, mediaErr.message);
             }
 
             return {
                 profile: profileData,
-                insights: insightsData
+                insights: insightsData,
+                topMedia: topMedia
             };
 
         } catch (error) {
             console.error(`[IG_INSIGHTS] Global catch:`, error.message);
-            throw error; // Rethrow to let the route handle it
+            throw error;
         }
     }
 
