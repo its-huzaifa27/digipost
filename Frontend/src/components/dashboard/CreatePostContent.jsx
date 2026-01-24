@@ -48,7 +48,8 @@ export function CreatePostContent() {
 
                     // Transform backend data to match UI component structure
                     const formattedAccounts = pages.map(page => ({
-                        id: page.platform, // 'facebook' or 'instagram'
+                        id: page.id, // Use unique Connection ID (UUID)
+                        platformId: page.platform, // Helper for icons/colors
                         name: page.pageName || page.platform,
                         connected: true,
                         username: page.platformUserId || 'Connected',
@@ -75,6 +76,38 @@ export function CreatePostContent() {
         setSelectedPlatforms(prev =>
             prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
         );
+    };
+
+    const handleDisconnect = async (e, connectionId, name) => {
+        e.stopPropagation(); // Prevent toggling selection when clicking disconnect
+        if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+            const selectedClientRaw = localStorage.getItem('selectedClient');
+            const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
+            const clientId = selectedClient?.id;
+
+            const response = await fetch(`${API_URL}/api/meta/disconnect`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ clientId, connectionId })
+            });
+
+            if (response.ok) {
+                // Remove from state
+                setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
+                setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
+            } else {
+                alert("Failed to disconnect account.");
+            }
+        } catch (error) {
+            console.error("Disconnect failed:", error);
+        }
     };
 
     const [isScheduled, setIsScheduled] = useState(false);
@@ -168,7 +201,13 @@ export function CreatePostContent() {
 
         if (caption && selectedPlatforms.length > 0) {
             // Validation: Instagram requires an image
-            if (selectedPlatforms.includes('instagram') && !media) {
+            // Validation: Instagram requires an image
+            const hasInstagram = selectedPlatforms.some(id => {
+                const account = socialAccounts.find(a => a.id === id);
+                return account?.platformId === 'instagram';
+            });
+
+            if (hasInstagram && !media) {
                 alert("Instagram requires an image/video. Please upload media.");
                 return;
             }
@@ -359,7 +398,7 @@ export function CreatePostContent() {
                                 {socialAccounts.map(account => (
                                     <div
                                         key={account.id}
-                                        className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all ${selectedPlatforms.includes(account.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                                        className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all group ${selectedPlatforms.includes(account.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
                                         onClick={() => togglePlatform(account.id)}
                                     >
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${account.color}`}>
@@ -369,6 +408,19 @@ export function CreatePostContent() {
                                             <span className="text-sm font-medium text-gray-900 block truncate">{account.name}</span>
                                             <span className="text-xs text-gray-500 truncate">{account.username}</span>
                                         </div>
+
+                                        {/* Disconnect Button (Always Visible) */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => handleDisconnect(e, account.id, account.name)}
+                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                            title="Disconnect Account"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+
                                         <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedPlatforms.includes(account.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
                                             {selectedPlatforms.includes(account.id) && <div className="w-2 h-2 bg-white rounded-full" />}
                                         </div>

@@ -106,20 +106,47 @@ export const createPost = async (req, res) => {
             // Keep image in Supabase (logic handled at end of file)
         } else {
             // IMMEDIATE PUBLISH:
-            for (const platformId of platforms) {
-                // platformId is 'facebook' or 'instagram' (but better to pass the CONNECTION ID if possible)
-                // But frontend currently sends 'facebook'/'instagram' strings.
-                // We need to find the specific connection.
-    
-                // Strategy: Find connection by platform name for this user AND client.
+            // IMMEDIATE PUBLISH:
+            for (const connectionId of platforms) {
+                // platformId expected to be the UUID of the PlatformConnection
+                
+                // Strategy: Find connection by ID for this user AND client (security check)
                 const connection = await PlatformConnection.findOne({
-                    where: { userId, clientId, platform: platformId, isActive: true }
+                    where: { id: connectionId, userId, clientId, isActive: true }
                 });
-    
+
                 if (!connection) {
-                    results[platformId] = { success: false, error: 'No connected account found.' };
+                     // Try to see if it's a legacy platform string request (fallback)
+                    if (['facebook', 'instagram', 'linkedin', 'twitter'].includes(connectionId)) {
+                        console.warn(`⚠️ Legacy platform ID used: ${connectionId}. Please update frontend.`);
+                        // Attempt fallback lookup
+                         const fallbackConnection = await PlatformConnection.findOne({
+                            where: { userId, clientId, platform: connectionId, isActive: true }
+                        });
+                        
+                        if (fallbackConnection) {
+                             // Fallback Logic Duplicate of below (refactor if needed, but keeping inline for safely)
+                             try {
+                                let response;
+                                if (fallbackConnection.platform === 'facebook') {
+                                    response = await metaService.publishToFacebook(fallbackConnection, caption, imageUrl, scheduledTime);
+                                } else if (fallbackConnection.platform === 'instagram') {
+                                    if (!imageUrl) throw new Error("Instagram requires an image.");
+                                    response = await metaService.publishToInstagram(fallbackConnection, caption, imageUrl);
+                                }
+                                results[connectionId] = { success: true, response: response?.data || response, scheduledTime: null };
+                             } catch (err) {
+                                results[connectionId] = { success: false, error: err.message };
+                             }
+                             continue;
+                        }
+                    }
+
+                    results[connectionId] = { success: false, error: 'No connected account found.' };
                     continue;
                 }
+
+                const platformId = connection.platform;
     
                 try {
                     let response;
@@ -132,15 +159,15 @@ export const createPost = async (req, res) => {
                         // Regular publish (LIVE only)
                         response = await metaService.publishToInstagram(connection, caption, imageUrl);
                     }
-                    results[platformId] = {
+                    results[connectionId] = {
                         success: true,
                         response: response?.data || response,
                         scheduledTime: null
                     };
                 } catch (err) {
                     const errorDetail = err.response?.data || err.message;
-                    console.error(`Publish failed for ${platformId}:`, errorDetail);
-                    results[platformId] = { success: false, error: errorDetail };
+                    console.error(`Publish failed for ${platformId} (${connectionId}):`, errorDetail);
+                    results[connectionId] = { success: false, error: errorDetail };
                 }
             }
         }

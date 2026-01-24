@@ -60,20 +60,26 @@ router.get('/pages', authenticateToken, async (req, res) => {
 
 // 4. Disconnect Accounts (Specific Platform or All)
 router.post('/disconnect', authenticateToken, async (req, res) => {
-    const { clientId, platform } = req.body;
-    const userId = req.user.id;
-
-    if (!clientId) return res.status(400).json({ error: 'clientId is required' });
-
-    try {
-        const query = { clientId, userId };
-        if (platform) {
-            query.platform = platform;
-        }
-
-        const deletedCount = await PlatformConnection.destroy({
-            where: query
-        });
+        const { clientId, platform, connectionId } = req.body;
+        const userId = req.user.id;
+    
+        if (!clientId) return res.status(400).json({ error: 'clientId is required' });
+    
+        try {
+            const query = { clientId, userId };
+    
+            if (connectionId) {
+                query.id = connectionId;
+            } else if (platform) {
+                query.platform = platform;
+            } else {
+               // If neither, fail safely or allow clearing all? Better safe.
+               if (!connectionId && !platform) return res.status(400).json({ error: 'connectionId or platform is required'});
+            }
+    
+            const deletedCount = await PlatformConnection.destroy({
+                where: query
+            });
 
         res.json({ success: true, message: 'Disconnected successfully', count: deletedCount });
     } catch (error) {
