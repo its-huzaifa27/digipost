@@ -13,6 +13,7 @@ export function CreatePostContent() {
     const [media, setMedia] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
+    const [isGeneratingAi, setIsGeneratingAi] = useState(false);
 
     const [socialAccounts, setSocialAccounts] = useState([]);
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
@@ -77,6 +78,46 @@ export function CreatePostContent() {
 
     const [isScheduled, setIsScheduled] = useState(false);
     const [scheduledDate, setScheduledDate] = useState("");
+
+
+
+    const handleAiGenerate = async () => {
+        if (!aiPrompt.trim()) {
+            alert("Please enter a topic or description first.");
+            return;
+        }
+
+        setIsGeneratingAi(true);
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_URL}/api/ai/generate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ topic: aiPrompt })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Data format: { caption, hashtags }
+                setCaption(data.caption);
+                setHashtags(data.hashtags);
+                // Switch back to manual mode to let user review
+                setCreationMode('manual');
+            } else {
+                throw new Error("Failed to generate content");
+            }
+        } catch (error) {
+            console.error("AI Generation Error:", error);
+            alert("Failed to generate content. Please try again.");
+        } finally {
+            setIsGeneratingAi(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -201,10 +242,21 @@ export function CreatePostContent() {
                             </div>
                             <Button
                                 type="button"
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-                                onClick={() => alert("AI Integration coming soon!")}
+                                className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                                onClick={handleAiGenerate}
+                                disabled={isGeneratingAi}
                             >
-                                Generate with AI
+                                {isGeneratingAi ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Magic is happening...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <FaRobot className="mr-2" />
+                                        Generate with AI
+                                    </>
+                                )}
                             </Button>
                         </div>
                     )}
