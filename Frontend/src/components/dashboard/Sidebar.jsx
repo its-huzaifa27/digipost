@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { FaBuilding, FaLayerGroup, FaPenNib, FaRobot, FaChartPie, FaGear, FaArrowRightFromBracket } from 'react-icons/fa6';
+import { FaBuilding, FaLayerGroup, FaGear, FaArrowRightFromBracket } from 'react-icons/fa6';
 import { clsx } from 'clsx';
 
 export function Sidebar() {
@@ -48,9 +48,7 @@ export function Sidebar() {
             <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
                 <NavItem path="/clients" label="My Clients" icon={<FaBuilding />} />
                 <NavItem path="/dashboard" label="Dashboard" icon={<FaLayerGroup />} />
-                <NavItem path="/create-post" label="Create Post" icon={<FaPenNib />} />
-                <NavItem path="/ai-agent" label="AI Agent" icon={<FaRobot />} />
-                <NavItem path="/analytics" label="Analytics" icon={<FaChartPie />} />
+
                 <NavItem path="/settings" label="Settings" icon={<FaGear />} />
             </nav>
 

@@ -86,17 +86,41 @@ export function Analytics() {
                         <p className="text-gray-500">Real-time performance metrics for your connected accounts.</p>
                     </div>
 
-                    {connections.length > 1 && (
-                        <select
-                            className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedConnection?.id}
-                            onChange={(e) => setSelectedConnection(connections.find(c => c.id === e.target.value))}
-                        >
-                            {connections.map(c => (
-                                <option key={c.id} value={c.id}>{c.pageName}</option>
-                            ))}
-                        </select>
-                    )}
+                    <div className="flex items-center gap-4">
+                        {/* Profile Badge */}
+                        {selectedConnection && (
+                            <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-full pl-2 pr-4 py-1.5 shadow-sm">
+                                <div className="w-8 h-8 rounded-full bg-linear-to-tr from-yellow-400 via-red-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                                    {insights?.profile?.profile_picture_url ? (
+                                        <img src={insights.profile.profile_picture_url} alt={selectedConnection.pageName} className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <FaInstagram className="text-lg" />
+                                    )}
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Viewing</span>
+                                    <span className="text-sm font-bold text-gray-900 leading-none">{selectedConnection.pageName}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {connections.length > 1 && (
+                            <div className="relative">
+                                <select
+                                    className="appearance-none bg-white border border-gray-200 rounded-lg pl-4 pr-10 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer hover:border-purple-200 transition-colors"
+                                    value={selectedConnection?.id}
+                                    onChange={(e) => setSelectedConnection(connections.find(c => c.id === e.target.value))}
+                                >
+                                    {connections.map(c => (
+                                        <option key={c.id} value={c.id}>{c.pageName}</option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {error && (

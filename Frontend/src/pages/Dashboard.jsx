@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FullWidthLayout } from '../components/layout/FullWidthLayout';
 import { TopBar } from '../components/dashboard/TopBar';
 import { ConnectedPlatformsWidget } from '../components/dashboard/ConnectedPlatformsWidget';
 import { CreatePostWidget } from '../components/dashboard/CreatePostWidget';
-import { AnalysisDrawer } from '../components/dashboard/AnalysisDrawer';
 import { Button } from '../components/ui/Button';
-import { FaChartPie } from 'react-icons/fa6';
+import { FaChartPie, FaRobot } from 'react-icons/fa6';
 
 export function Dashboard() {
+    const navigate = useNavigate();
     const [selectedClientId, setSelectedClientId] = useState('all');
     const [stats, setStats] = useState({
         totalPosts: 0,
@@ -18,7 +19,6 @@ export function Dashboard() {
     const [engagementData, setEngagementData] = useState([]);
     const [clients, setClients] = useState([]);
     const [selectedClientName, setSelectedClientName] = useState('All Clients');
-    const [isAnalysisDrawerOpen, setIsAnalysisDrawerOpen] = useState(false);
 
     // Initialize from localStorage on mount
     useEffect(() => {
@@ -92,17 +92,6 @@ export function Dashboard() {
     return (
         <FullWidthLayout>
             {/* Floating Toggle for Analysis Drawer (Visible when drawer is closed) */}
-            <div className="fixed left-0 top-32 z-30">
-                <button
-                    onClick={() => setIsAnalysisDrawerOpen(true)}
-                    className="bg-white border-y border-r border-gray-200 text-blue-600 p-2 pr-4 rounded-r-xl shadow-md hover:bg-blue-50 transition-all flex items-center gap-2 group hover:pr-6"
-                    title="Open Analysis"
-                >
-                    <FaChartPie className="text-xl" />
-                    <span className="text-xs font-bold text-gray-700 hidden group-hover:block transition-all">Analytics</span>
-                </button>
-            </div>
-
             <div className="sticky top-0 z-20">
                 <TopBar
                     clients={clients}
@@ -118,14 +107,23 @@ export function Dashboard() {
                         <h1 className="text-3xl font-bold text-gray-900">Good Morning, Admin</h1>
                         <p className="text-gray-500 text-lg">Here's what's happening with <span className="font-semibold text-gray-700">{selectedClientName}</span> today.</p>
                     </div>
-                    <Button
-                        variant="secondary"
-                        onClick={() => setIsAnalysisDrawerOpen(true)}
-                        className="gap-2 shadow-sm border border-gray-200"
-                    >
-                        <FaChartPie className="text-blue-600" />
-                        <span>View Analytics</span>
-                    </Button>
+                    <div className="flex gap-3">
+                        <Button
+                            onClick={() => navigate('/ai-agent')}
+                            className="gap-2 shadow-sm border-none bg-linear-to-r from-purple-600 to-indigo-600 text-white hover:opacity-90 transition-opacity"
+                        >
+                            <FaRobot className="text-white" />
+                            <span>AI Agent</span>
+                        </Button>
+                        <Button
+                            variant="secondary"
+                            onClick={() => navigate('/analytics')}
+                            className="gap-2 shadow-sm border border-gray-200"
+                        >
+                            <FaChartPie className="text-blue-600" />
+                            <span>View Analytics</span>
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Main Content: Just Connected Platforms & Create Post */}
@@ -151,14 +149,7 @@ export function Dashboard() {
                 </div>
             </div>
 
-            {/* Analysis Drawer (Left) */}
-            <AnalysisDrawer
-                isOpen={isAnalysisDrawerOpen}
-                onClose={() => setIsAnalysisDrawerOpen(false)}
-                clientName={selectedClientName}
-                stats={stats}
-                engagementData={engagementData}
-            />
+
         </FullWidthLayout>
     );
 }
