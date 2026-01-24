@@ -3,8 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { FaPenNib } from 'react-icons/fa6';
 import { Button } from '../ui/Button';
 
-export function CreatePostWidget() {
+export function CreatePostWidget({ onStart }) {
     const navigate = useNavigate();
+
+    const handleClick = () => {
+        if (onStart) {
+            onStart();
+        } else {
+            navigate('/create-post-page');
+        }
+    };
 
     return (
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg shadow-blue-500/20 text-white flex flex-col items-center justify-center text-center h-full relative overflow-hidden">
@@ -20,7 +28,7 @@ export function CreatePostWidget() {
                 Draft, schedule, and publish content across all your connected platforms instantly.
             </p>
             <Button
-                onClick={() => navigate('/create-post-page')}
+                onClick={handleClick}
                 className="bg-white text-blue-600 hover:bg-blue-50 font-bold border-none shadow-md w-full sm:w-auto"
             >
                 Start Creating
