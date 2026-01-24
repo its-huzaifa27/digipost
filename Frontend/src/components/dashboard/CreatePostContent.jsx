@@ -187,7 +187,10 @@ export function CreatePostContent() {
                 }
 
                 const formData = new FormData();
-                formData.append('caption', caption);
+                // Bug fix: Concatenate hashtags to caption
+                const fullCaption = hashtags ? `${caption}\n\n${hashtags}` : caption;
+                formData.append('caption', fullCaption);
+
                 formData.append('platforms', JSON.stringify(selectedPlatforms));
                 formData.append('clientId', clientId);
 

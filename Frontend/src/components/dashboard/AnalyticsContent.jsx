@@ -299,8 +299,16 @@ export function AnalyticsContent() {
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                         />
                                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-lg border border-white/10">
-                                            <span className="text-sm font-bold">{media.views.toLocaleString()}</span>
+                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-lg border border-white/10 flex items-center gap-2">
+                                            <div className="flex items-center gap-1">
+                                                <FaThumbsUp className="text-pink-500 text-xs" />
+                                                <span className="text-xs font-bold">{media.like_count || 0}</span>
+                                            </div>
+                                            <div className="w-px h-3 bg-gray-700"></div>
+                                            <div className="flex items-center gap-1">
+                                                <FaEye className="text-blue-500 text-xs" />
+                                                <span className="text-xs font-bold">{media.views.toLocaleString()}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))
