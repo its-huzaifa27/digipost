@@ -19,4 +19,19 @@ router.post('/generate', authenticateToken, async (req, res) => {
     }
 });
 
+router.post('/generate-image', authenticateToken, async (req, res) => {
+    const { prompt } = req.body;
+
+    if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    try {
+        const base64Image = await aiService.generateImage(prompt);
+        res.json({ image: `data:image/png;base64,${base64Image}` });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

@@ -75,9 +75,24 @@ export function MediaUploader({ media, onFileChange, onDrop }) {
                     <p className="text-sm text-gray-500">Image or Video file</p>
 
                     {media && (
-                        <p className="text-sm text-green-600 font-medium mt-2">
-                            ✓ {media.name}
-                        </p>
+                        <div className="mt-4 w-full">
+                            {media.type.startsWith('image/') ? (
+                                <img
+                                    src={URL.createObjectURL(media)}
+                                    alt="Preview"
+                                    className="max-h-64 mx-auto rounded-lg shadow-sm object-contain"
+                                />
+                            ) : (
+                                <video
+                                    src={URL.createObjectURL(media)}
+                                    controls
+                                    className="max-h-64 mx-auto rounded-lg shadow-sm"
+                                />
+                            )}
+                            <p className="text-sm text-green-600 font-medium mt-2">
+                                ✓ {media.name}
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>

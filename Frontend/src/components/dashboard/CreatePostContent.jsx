@@ -14,6 +14,7 @@ export function CreatePostContent() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
     const [socialAccounts, setSocialAccounts] = useState([]);
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
@@ -116,6 +117,49 @@ export function CreatePostContent() {
             alert("Failed to generate content. Please try again.");
         } finally {
             setIsGeneratingAi(false);
+        }
+    };
+
+    const handleImageGenerate = async () => {
+        if (!aiPrompt.trim()) {
+            alert("Please enter a topic/description for the image first.");
+            return;
+        }
+
+        setIsGeneratingImage(true);
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_URL}/api/ai/generate-image`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ prompt: aiPrompt })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Data format: { image: "data:image/png;base64,..." }
+
+                // Convert Base64 to File object
+                const res = await fetch(data.image);
+                const blob = await res.blob();
+                const file = new File([blob], "ai-generated-image.png", { type: "image/png" });
+
+                setMedia(file);
+                // Switch to manual to see the uploaded image
+                setCreationMode('manual');
+            } else {
+                throw new Error("Failed to generate image");
+            }
+        } catch (error) {
+            console.error("AI Image Generation Error:", error);
+            alert("Failed to generate image. Please try again.");
+        } finally {
+            setIsGeneratingImage(false);
         }
     };
 
@@ -254,7 +298,26 @@ export function CreatePostContent() {
                                 ) : (
                                     <>
                                         <FaRobot className="mr-2" />
-                                        Generate with AI
+                                        Generate Caption & Hashtags
+                                    </>
+                                )}
+                            </Button>
+
+                            <Button
+                                type="button"
+                                className="w-full bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                                onClick={handleImageGenerate}
+                                disabled={isGeneratingImage}
+                            >
+                                {isGeneratingImage ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Painting pixels...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <FaPen className="mr-2" />
+                                        Generate Image
                                     </>
                                 )}
                             </Button>
