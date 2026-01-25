@@ -376,68 +376,69 @@ class MetaService {
             // 2. Fetch Insights (Grouped by Compatibility)
             let insightsData = [];
 
-            // Group 1: Standard Daily Metrics (Reach, Impressions)
+            // Group 1: Reach (Standard, Period: Day)
             try {
-                const standardMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                const reachMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
-                        metric: 'reach,impressions',
+                        metric: 'reach',
                         period: 'day',
                         access_token: connection.accessToken
                     }
                 });
-                insightsData = [...insightsData, ...(standardMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 1 (Standard) success`);
-            } catch (err1) {
-                console.warn(`[IG_INSIGHTS] Group 1 failed:`, err1.response?.data?.error?.message || err1.message);
+                insightsData = [...insightsData, ...(reachMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 1 (Reach) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 1 (Reach) failed:`, err.response?.data?.error?.message || err.message);
             }
 
-            // Group 2: Interaction Metrics (Total Interactions, Accounts Engaged) - requires metric_type=total_value usually not needed for these but let's separate
+            // Group 2: Follower Count (Standard, Period: Day - might fail on some accounts (<100 followers), so isolated)
             try {
-                // Note: 'total_interactions' and 'accounts_engaged' often don't support 'period=day' the same way or require specific flags.
-                // Reverting to safe 'follower_count' in a separate block if needed, but let's try interactions.
-                // Actually, 'total_interactions' isn't always available on all accounts.
-                const activityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                const followerMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
-                        metric: 'total_interactions,accounts_engaged',
+                        metric: 'follower_count',
                         period: 'day',
                         access_token: connection.accessToken
                     }
                 });
-                insightsData = [...insightsData, ...(activityMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 2 (Activity) success`);
-            } catch (err2) {
-                console.warn(`[IG_INSIGHTS] Group 2 failed:`, err2.response?.data?.error?.message || err2.message);
+                insightsData = [...insightsData, ...(followerMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 2 (Follower Count) success`);
+            } catch (err) {
+                // Common failure for small accounts
+                console.warn(`[IG_INSIGHTS] Group 2 (Follower Count) failed:`, err.response?.data?.error?.message || err.message);
             }
 
-            // Group 3: Profile Activity (Profile Views, Website Clicks) - These OFTEN need metric_type=total_value
-            try {
-                const profileActivityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'profile_views',
-                        period: 'day',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(profileActivityMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 3 (Profile) success`);
-            } catch (err3) {
-                console.warn(`[IG_INSIGHTS] Group 3 failed:`, err3.response?.data?.error?.message || err3.message);
-            }
-
-            // Group 4: Total Value Metrics (Profile Links Taps)
+            // Group 3: Privacy Protected Metrics (Require metric_type=total_value)
+            // 'total_interactions', 'accounts_engaged', 'profile_views'
             try {
                 const totalValueMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
-                        metric: 'profile_links_taps',
+                        metric: 'total_interactions,accounts_engaged,profile_views',
                         period: 'day',
                         metric_type: 'total_value',
                         access_token: connection.accessToken
                     }
                 });
                 insightsData = [...insightsData, ...(totalValueMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 4 (Total Value) success`);
-            } catch (err4) {
-                console.warn(`[IG_INSIGHTS] Group 4 failed:`, err4.response?.data?.error?.message || err4.message);
+                console.log(`[IG_INSIGHTS] Group 3 (Total Value) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 3 (Total Value) failed:`, err.response?.data?.error?.message || err.message);
+            }
+
+            // Group 4: Profile Activity (some might not need total_value but grouping safe ones)
+            // 'profile_links_taps', 'website_clicks'
+            try {
+                const activityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'profile_links_taps,website_clicks',
+                        period: 'day',
+                        metric_type: 'total_value', // Often required for these too
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(activityMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 4 (Activity) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 4 (Activity) failed:`, err.response?.data?.error?.message || err.message);
             }
 
 
