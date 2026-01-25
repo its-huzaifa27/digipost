@@ -351,7 +351,7 @@ class MetaService {
             try {
                 const mediaResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, {
                     params: {
-                        fields: 'id,media_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count',
+                        fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count',
                         limit: 10,
                         access_token: connection.accessToken
                     }
@@ -362,15 +362,26 @@ class MetaService {
                 // Fetch insights for each media item to get views/impressions
                 topMedia = await Promise.all(mediaList.map(async (media) => {
                     try {
+                        let metricName = 'impressions'; // Default for IMAGE/CAROUSEL
+
+                        // Determine metric based on type
+                        if (media.media_product_type === 'REELS') {
+                            metricName = 'plays';
+                        } else if (media.media_type === 'VIDEO') {
+                            metricName = 'video_views'; // Or 'plays' depending on API version, keeping 'video_views' as requested fallback
+                        }
+
                         const mInsights = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
                             params: {
-                                metric: media.media_type === 'VIDEO' ? 'plays' : 'impressions',
+                                metric: metricName,
                                 access_token: connection.accessToken
                             }
                         });
-                        const views = mInsights.data.data.find(i => i.name === 'plays' || i.name === 'impressions')?.values[0]?.value || 0;
+
+                        const views = mInsights.data.data.find(i => i.name === metricName)?.values[0]?.value || 0;
                         return { ...media, views };
                     } catch (err) {
+                        console.warn(`[IG_INSIGHTS] Media insight failed for ${media.id} (${media.media_type}/${media.media_product_type}):`, err.message);
                         return { ...media, views: 0 };
                     }
                 }));
