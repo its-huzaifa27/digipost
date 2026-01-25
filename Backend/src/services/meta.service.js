@@ -455,9 +455,41 @@ class MetaService {
                 }
             }
 
+            // 3. Fetch Top Media (Page Posts)
+            let topMedia = [];
+            try {
+                const feedResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/feed`, {
+                    params: {
+                        fields: 'id,message,created_time,full_picture,likes.summary(true),comments.summary(true)',
+                        limit: 10,
+                        access_token: connection.accessToken
+                    }
+                });
+
+                const feedData = feedResponse.data.data || [];
+
+                topMedia = feedData.map(post => ({
+                    id: post.id,
+                    media_type: post.full_picture ? 'IMAGE' : 'TEXT',
+                    media_url: post.full_picture || null,
+                    thumbnail_url: post.full_picture || null,
+                    timestamp: post.created_time,
+                    caption: post.message || 'No caption',
+                    like_count: post.likes?.summary?.total_count || 0,
+                    comments_count: post.comments?.summary?.total_count || 0,
+                    views: 0 // Facebook Feed API doesn't easily return view count per post for public
+                }));
+
+                console.log(`[FB_INSIGHTS] Posts fetch success: ${topMedia.length} posts`);
+            } catch (feedErr) {
+                console.warn(`[FB_INSIGHTS] Posts fetch failed:`, feedErr.response?.data || feedErr.message);
+                // Don't throw, just return empty media
+            }
+
             return {
                 profile: profileData,
-                insights: insightsData
+                insights: insightsData,
+                topMedia: topMedia
             };
 
         } catch (error) {
