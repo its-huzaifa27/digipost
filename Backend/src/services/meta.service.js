@@ -2,7 +2,7 @@ import axios from 'axios';
 import PlatformConnection from '../models/platformConnection.model.js';
 import { encrypt, decrypt } from '../utils/encryption.js';
 
-const FB_GRAPH_URL = 'https://graph.facebook.com/v19.0';
+const FB_GRAPH_URL = 'https://graph.facebook.com/v21.0';
 
 class MetaService {
     // --------------------------------------------------------------------------
@@ -300,7 +300,7 @@ class MetaService {
 
             // 2. Fetch Insights (Reach, Views, Interactions, etc.)
             let insightsData = [];
-            
+
             // Block A: Metrics requiring 'total_value' (including views breakdown)
             try {
                 const totalValueInsights = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
@@ -419,22 +419,40 @@ class MetaService {
             }
 
             // 2. Fetch Insights (Impressions, Engaged Users)
-            // Note: 'page_impressions' and 'page_engaged_users' are common metrics.
             let insightsData = [];
+
+            // Try fetching full stable set first
             try {
                 const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
                     params: {
-                        metric: 'page_impressions_unique,page_daily_active_users,page_views_total', // Returning to safe list as per user request
+                        // Updated stable metrics for v21.0 (removed page_views_total if deprecated, added page_impressions)
+                        metric: 'page_impressions_unique,page_daily_active_users,page_impressions',
                         period: 'day',
                         access_token: connection.accessToken
                     }
                 });
                 insightsData = insightsResponse.data.data;
-                console.log(`[FB_INSIGHTS] Insights fetch success`);
+                console.log(`[FB_INSIGHTS] Insights fetch success (Full Set)`);
             } catch (insightsErr) {
-                console.error(`[FB_INSIGHTS] Insights fetch failed:`, insightsErr.response?.data || insightsErr.message);
-                // Non-critical if insights fail but profile works? Maybe. But let's error for now.
-                throw new Error(`Facebook Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
+                console.warn(`[FB_INSIGHTS] Full set fetch failed:`, insightsErr.response?.data || insightsErr.message);
+
+                // Fallback: Try fetching just a single stable metric
+                try {
+                    console.log(`[FB_INSIGHTS] Attempting fallback fetch (page_impressions only)`);
+                    const fallbackResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
+                        params: {
+                            metric: 'page_impressions',
+                            period: 'day',
+                            access_token: connection.accessToken
+                        }
+                    });
+                    insightsData = fallbackResponse.data.data;
+                    console.log(`[FB_INSIGHTS] Fallback fetch success`);
+                } catch (fallbackErr) {
+                    console.error(`[FB_INSIGHTS] Fallback fetch failed:`, fallbackErr.response?.data || fallbackErr.message);
+                    // We allow insights to be empty if both fail, but log the error
+                    // throw new Error(`Facebook Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
+                }
             }
 
             return {
