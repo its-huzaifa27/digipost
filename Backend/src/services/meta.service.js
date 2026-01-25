@@ -164,34 +164,49 @@ class MetaService {
     /**
      * Publishes a post to Facebook.
      */
-    async publishToFacebook(connection, message, imageUrls, scheduledTime) {
+    /**
+     * Publishes a post to Facebook.
+     */
+    async publishToFacebook(connection, message, mediaUrls, scheduledTime) {
         try {
             const params = new URLSearchParams();
             params.append('access_token', connection.accessToken);
 
             // Normalize input to array
-            const images = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
+            const media = Array.isArray(mediaUrls) ? mediaUrls : (mediaUrls ? [mediaUrls] : []);
 
             if (scheduledTime) {
                 params.append('published', 'false');
                 params.append('scheduled_publish_time', scheduledTime);
             }
 
-            if (images.length === 0) {
+            if (media.length === 0) {
                 // Text only
                 const url = `${FB_GRAPH_URL}/${connection.pageId}/feed`;
                 params.append('message', message);
                 return await axios.post(url, params);
-            } else if (images.length === 1) {
-                // Single Photo
-                const photoUrl = `${FB_GRAPH_URL}/${connection.pageId}/photos`;
-                params.append('url', images[0]);
-                params.append('caption', message);
-                return await axios.post(photoUrl, params);
+            } else if (media.length === 1) {
+                const fileUrl = media[0];
+                if (this._isVideo(fileUrl)) {
+                    // --- Single Video Post ---
+                    const videoUrl = `${FB_GRAPH_URL}/${connection.pageId}/videos`;
+                    params.append('file_url', fileUrl);
+                    params.append('description', message); // FB Videos use 'description', not 'message'/'caption'
+                    return await axios.post(videoUrl, params);
+                } else {
+                    // --- Single Photo Post ---
+                    const photoUrl = `${FB_GRAPH_URL}/${connection.pageId}/photos`;
+                    params.append('url', fileUrl);
+                    params.append('caption', message);
+                    return await axios.post(photoUrl, params);
+                }
             } else {
                 // Multi-Photo Post (Carousel/Album)
+                // Note: FB API organic albums are typically images. Mixed/Video albums are complex/limited via API.
+                // We will treat this as an Image Album for now.
+
                 // 1. Upload each photo as unpublished
-                const mediaIds = await Promise.all(images.map(async (img) => {
+                const mediaIds = await Promise.all(media.map(async (img) => {
                     const uploadParams = new URLSearchParams();
                     uploadParams.append('access_token', connection.accessToken);
                     uploadParams.append('url', img);
@@ -219,22 +234,32 @@ class MetaService {
 
     /**
      * Publishes a post to Instagram (2-Step Flow).
+     * Supports: Single Video (Reels), Single Image, Carousel (Images/Videos).
      */
-    async publishToInstagram(connection, caption, imageUrls) {
+    async publishToInstagram(connection, caption, mediaUrls) {
         try {
             // Normalize input
-            const images = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
+            const media = Array.isArray(mediaUrls) ? mediaUrls : (mediaUrls ? [mediaUrls] : []);
 
-            if (images.length === 0) {
-                throw new Error("Instagram requires at least one image.");
+            if (media.length === 0) {
+                throw new Error("Instagram requires at least one image/video.");
             }
 
-            if (images.length === 1) {
-                // --- Single Image Flow ---
+            if (media.length === 1) {
+                // --- Single Media Flow (Image or Reel) ---
+                const fileUrl = media[0];
+                const isVideo = this._isVideo(fileUrl);
+
                 const containerParams = new URLSearchParams();
-                containerParams.append('image_url', images[0]);
                 containerParams.append('caption', caption);
                 containerParams.append('access_token', connection.accessToken);
+
+                if (isVideo) {
+                    containerParams.append('media_type', 'REELS'); // Valid for v19.0+ for single video
+                    containerParams.append('video_url', fileUrl);
+                } else {
+                    containerParams.append('image_url', fileUrl);
+                }
 
                 const containerResponse = await axios.post(
                     `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
@@ -242,6 +267,8 @@ class MetaService {
                 );
 
                 const creationId = containerResponse.data.id;
+
+                // CRITICAL: Wait for processing (especially for Video/Reels)
                 await this._waitForInstagramMedia(creationId, connection.accessToken);
 
                 const publishParams = new URLSearchParams();
@@ -257,56 +284,67 @@ class MetaService {
             } else {
                 // --- Carousel Flow ---
                 // 1. Create Item Containers (is_carousel_item=true)
-                const itemIds = await Promise.all(images.map(async (imgUrl) => {
+                const itemIds = await Promise.all(media.map(async (url) => {
+                    const isVideo = this._isVideo(url);
                     const itemParams = new URLSearchParams();
-                    itemParams.append('image_url', imgUrl);
+
                     itemParams.append('is_carousel_item', 'true');
                     itemParams.append('access_token', connection.accessToken);
+
+                    if (isVideo) {
+                        itemParams.append('media_type', 'VIDEO');
+                        itemParams.append('video_url', url);
+                    } else {
+                        // media_type default is usually image, but image_url implies it
+                        itemParams.append('image_url', url);
+                    }
 
                     const res = await axios.post(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, itemParams);
                     return res.data.id;
                 }));
 
-                // Wait for all items to be ready? (Usually items are ready instantly if they are images, but let's be safe if we add video later)
-                // For images, it's usually instant. But let's loop check if needed. 
-                // We'll skip explicit wait for items for now as they are basic image containers, but strictly speaking we should.
-                // Revisiting: It's safer to wait.
+                // 2. Wait for ALL items to be ready
+                // This is absolutely required for Carousels containing videos, and safe for images.
                 for (const itemId of itemIds) {
                     await this._waitForInstagramMedia(itemId, connection.accessToken);
                 }
 
-                // 2. Create Carousel Container
+                // 3. Create Carousel Container
                 const carouselParams = new URLSearchParams();
                 carouselParams.append('media_type', 'CAROUSEL');
                 carouselParams.append('caption', caption);
                 carouselParams.append('children', itemIds.join(',')); // Comma-separated IDs
                 carouselParams.append('access_token', connection.accessToken);
 
-                const carouselResponse = await axios.post(
+                const carouselContainerResponse = await axios.post(
                     `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
                     carouselParams
                 );
 
-                const carouselId = carouselResponse.data.id;
-                await this._waitForInstagramMedia(carouselId, connection.accessToken);
+                const carouselId = carouselContainerResponse.data.id;
 
-                // 3. Publish Carousel
+                // 4. Publish Carousel
                 const publishParams = new URLSearchParams();
                 publishParams.append('creation_id', carouselId);
                 publishParams.append('access_token', connection.accessToken);
 
-                const publishResponse = await axios.post(
-                    `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
-                    publishParams
-                );
-                return publishResponse.data;
+                return (await axios.post(`${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`, publishParams)).data;
             }
-
         } catch (error) {
             console.error(`IG Publish Error (${connection.pageName}):`, error.response?.data || error.message);
             throw error;
         }
     }
+
+    /**
+     * Helper to detect video files based on extension.
+     */
+    _isVideo(url) {
+        if (!url) return false;
+        // Basic check for common video extensions
+        return url.match(/\.(mp4|mov|avi|wmv|flv|mkv)$/i) !== null;
+    }
+
 
     /**
      * Polls the Instagram API to check if a media container is ready for publishing.
