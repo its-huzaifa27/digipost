@@ -10,7 +10,7 @@ export function CreatePostContent() {
     const [aiPrompt, setAiPrompt] = useState("");
     const [caption, setCaption] = useState("");
     const [hashtags, setHashtags] = useState("");
-    const [media, setMedia] = useState(null);
+    const [media, setMedia] = useState([]);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showError, setShowError] = useState(false);
     const [isGeneratingAi, setIsGeneratingAi] = useState(false);
@@ -182,7 +182,8 @@ export function CreatePostContent() {
                 const blob = await res.blob();
                 const file = new File([blob], "ai-generated-image.png", { type: "image/png" });
 
-                setMedia(file);
+                // Append to existing media
+                setMedia(prev => Array.isArray(prev) ? [...prev, file] : [file]);
                 // Switch to manual to see the uploaded image
                 setCreationMode('manual');
             } else {
@@ -199,16 +200,18 @@ export function CreatePostContent() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Convert media state to array for uniform handling
+        const currentMedia = Array.isArray(media) ? media : (media ? [media] : []);
+
         if (caption && selectedPlatforms.length > 0) {
-            // Validation: Instagram requires an image
             // Validation: Instagram requires an image
             const hasInstagram = selectedPlatforms.some(id => {
                 const account = socialAccounts.find(a => a.id === id);
                 return account?.platformId === 'instagram';
             });
 
-            if (hasInstagram && !media) {
-                alert("Instagram requires an image/video. Please upload media.");
+            if (hasInstagram && currentMedia.length === 0) {
+                alert("Instagram requires at least one image/video. Please upload media.");
                 return;
             }
 
@@ -233,8 +236,11 @@ export function CreatePostContent() {
                 formData.append('platforms', JSON.stringify(selectedPlatforms));
                 formData.append('clientId', clientId);
 
-                if (media) {
-                    formData.append('media', media);
+                // Append all files
+                if (currentMedia.length > 0) {
+                    currentMedia.forEach(file => {
+                        formData.append('media', file);
+                    });
                 }
 
                 if (isScheduled && scheduledDate) {
@@ -257,7 +263,7 @@ export function CreatePostContent() {
                         setShowSuccess(false);
                         setCaption("");
                         setHashtags("");
-                        setMedia(null);
+                        setMedia([]); // Reset as array
                         setIsScheduled(false);
                         setScheduledDate("");
                     }, 3000);

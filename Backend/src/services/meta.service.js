@@ -164,25 +164,52 @@ class MetaService {
     /**
      * Publishes a post to Facebook.
      */
-    async publishToFacebook(connection, message, imageUrl, scheduledTime) {
+    async publishToFacebook(connection, message, imageUrls, scheduledTime) {
         try {
             const params = new URLSearchParams();
             params.append('access_token', connection.accessToken);
+
+            // Normalize input to array
+            const images = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
 
             if (scheduledTime) {
                 params.append('published', 'false');
                 params.append('scheduled_publish_time', scheduledTime);
             }
 
-            if (imageUrl) {
-                const photoUrl = `${FB_GRAPH_URL}/${connection.pageId}/photos`;
-                params.append('url', imageUrl);
-                params.append('caption', message);
-                return await axios.post(photoUrl, params);
-            } else {
+            if (images.length === 0) {
+                // Text only
                 const url = `${FB_GRAPH_URL}/${connection.pageId}/feed`;
                 params.append('message', message);
                 return await axios.post(url, params);
+            } else if (images.length === 1) {
+                // Single Photo
+                const photoUrl = `${FB_GRAPH_URL}/${connection.pageId}/photos`;
+                params.append('url', images[0]);
+                params.append('caption', message);
+                return await axios.post(photoUrl, params);
+            } else {
+                // Multi-Photo Post (Carousel/Album)
+                // 1. Upload each photo as unpublished
+                const mediaIds = await Promise.all(images.map(async (img) => {
+                    const uploadParams = new URLSearchParams();
+                    uploadParams.append('access_token', connection.accessToken);
+                    uploadParams.append('url', img);
+                    uploadParams.append('published', 'false'); // Important: Don't publish yet
+
+                    const res = await axios.post(`${FB_GRAPH_URL}/${connection.pageId}/photos`, uploadParams);
+                    return res.data.id;
+                }));
+
+                // 2. Publish Feed Post with attached_media
+                const feedUrl = `${FB_GRAPH_URL}/${connection.pageId}/feed`;
+                params.append('message', message);
+
+                // Format: [{"media_fbid":"ID1"}, {"media_fbid":"ID2"}]
+                const attachedMedia = mediaIds.map(id => ({ media_fbid: id }));
+                params.append('attached_media', JSON.stringify(attachedMedia));
+
+                return await axios.post(feedUrl, params);
             }
         } catch (error) {
             console.error(`FB Publish Error (${connection.pageName}):`, error.response?.data || error.message);
@@ -193,39 +220,87 @@ class MetaService {
     /**
      * Publishes a post to Instagram (2-Step Flow).
      */
-    async publishToInstagram(connection, caption, imageUrl) {
+    async publishToInstagram(connection, caption, imageUrls) {
         try {
-            if (!imageUrl) {
-                throw new Error("Instagram requires an image.");
+            // Normalize input
+            const images = Array.isArray(imageUrls) ? imageUrls : (imageUrls ? [imageUrls] : []);
+
+            if (images.length === 0) {
+                throw new Error("Instagram requires at least one image.");
             }
 
-            // Step 1: Create Container
-            const containerParams = new URLSearchParams();
-            containerParams.append('image_url', imageUrl);
-            containerParams.append('caption', caption);
-            containerParams.append('access_token', connection.accessToken);
+            if (images.length === 1) {
+                // --- Single Image Flow ---
+                const containerParams = new URLSearchParams();
+                containerParams.append('image_url', images[0]);
+                containerParams.append('caption', caption);
+                containerParams.append('access_token', connection.accessToken);
 
-            const containerResponse = await axios.post(
-                `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
-                containerParams
-            );
+                const containerResponse = await axios.post(
+                    `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
+                    containerParams
+                );
 
-            const creationId = containerResponse.data.id;
+                const creationId = containerResponse.data.id;
+                await this._waitForInstagramMedia(creationId, connection.accessToken);
 
-            // Step 1.5: Wait for Media to be Ready
-            await this._waitForInstagramMedia(creationId, connection.accessToken);
+                const publishParams = new URLSearchParams();
+                publishParams.append('creation_id', creationId);
+                publishParams.append('access_token', connection.accessToken);
 
-            // Step 2: Publish Container
-            const publishParams = new URLSearchParams();
-            publishParams.append('creation_id', creationId);
-            publishParams.append('access_token', connection.accessToken);
+                const publishResponse = await axios.post(
+                    `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
+                    publishParams
+                );
+                return publishResponse.data;
 
-            const publishResponse = await axios.post(
-                `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
-                publishParams
-            );
+            } else {
+                // --- Carousel Flow ---
+                // 1. Create Item Containers (is_carousel_item=true)
+                const itemIds = await Promise.all(images.map(async (imgUrl) => {
+                    const itemParams = new URLSearchParams();
+                    itemParams.append('image_url', imgUrl);
+                    itemParams.append('is_carousel_item', 'true');
+                    itemParams.append('access_token', connection.accessToken);
 
-            return publishResponse.data;
+                    const res = await axios.post(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, itemParams);
+                    return res.data.id;
+                }));
+
+                // Wait for all items to be ready? (Usually items are ready instantly if they are images, but let's be safe if we add video later)
+                // For images, it's usually instant. But let's loop check if needed. 
+                // We'll skip explicit wait for items for now as they are basic image containers, but strictly speaking we should.
+                // Revisiting: It's safer to wait.
+                for (const itemId of itemIds) {
+                    await this._waitForInstagramMedia(itemId, connection.accessToken);
+                }
+
+                // 2. Create Carousel Container
+                const carouselParams = new URLSearchParams();
+                carouselParams.append('media_type', 'CAROUSEL');
+                carouselParams.append('caption', caption);
+                carouselParams.append('children', itemIds.join(',')); // Comma-separated IDs
+                carouselParams.append('access_token', connection.accessToken);
+
+                const carouselResponse = await axios.post(
+                    `${FB_GRAPH_URL}/${connection.igBusinessId}/media`,
+                    carouselParams
+                );
+
+                const carouselId = carouselResponse.data.id;
+                await this._waitForInstagramMedia(carouselId, connection.accessToken);
+
+                // 3. Publish Carousel
+                const publishParams = new URLSearchParams();
+                publishParams.append('creation_id', carouselId);
+                publishParams.append('access_token', connection.accessToken);
+
+                const publishResponse = await axios.post(
+                    `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
+                    publishParams
+                );
+                return publishResponse.data;
+            }
 
         } catch (error) {
             console.error(`IG Publish Error (${connection.pageName}):`, error.response?.data || error.message);

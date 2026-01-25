@@ -5,6 +5,6 @@ import { authenticateToken } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
 // 'media' must match the FormData key sent from frontend
-router.post('/create', authenticateToken, upload.single('media'), createPost);
+router.post('/create', authenticateToken, upload.array('media', 10), createPost);
 
 export default router;
