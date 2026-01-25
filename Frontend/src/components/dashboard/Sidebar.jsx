@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FaBuilding, FaLayerGroup, FaGear, FaArrowRightFromBracket, FaChevronDown } from 'react-icons/fa6';
+import { FaBuilding, FaLayerGroup, FaGear, FaArrowRightFromBracket, FaChevronDown, FaXmark } from 'react-icons/fa6';
 import { clsx } from 'clsx';
 import { useState, useEffect } from 'react';
 
-export function Sidebar() {
+export function Sidebar({ isOpen, onClose }) {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -43,9 +43,12 @@ export function Sidebar() {
     );
 
     return (
-        <div className="w-48 bg-white h-screen fixed left-0 top-0 border-r border-gray-100 flex flex-col z-50">
+        <div className={clsx(
+            "fixed top-0 left-0 h-screen bg-white border-r border-gray-100 flex flex-col z-50 transition-transform duration-300 ease-in-out md:translate-x-0 w-64 md:w-48 shadow-2xl md:shadow-none",
+            isOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
             {/* Logo */}
-            <div className="p-4 pb-2">
+            <div className="p-4 pb-2 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
                         D
@@ -54,6 +57,10 @@ export function Sidebar() {
                         Digipost
                     </span>
                 </Link>
+                {/* Mobile Close Button */}
+                <button onClick={onClose} className="md:hidden text-gray-500 hover:bg-gray-100 p-2 rounded-lg">
+                    <FaXmark className="w-5 h-5" />
+                </button>
             </div>
 
             {/* Navigation */}

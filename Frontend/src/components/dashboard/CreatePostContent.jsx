@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
+import { clsx } from 'clsx';
 import { MediaUploader } from "../features/create-post/MediaUploader";
 import { PostPreview } from "../features/create-post/PostPreview";
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen } from 'react-icons/fa6';
@@ -16,6 +17,7 @@ export function CreatePostContent() {
     const [showError, setShowError] = useState(false);
     const [isGeneratingAi, setIsGeneratingAi] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+    const [mobileTab, setMobileTab] = useState('editor'); // 'editor' | 'preview'
 
     const [socialAccounts, setSocialAccounts] = useState([]);
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
@@ -294,7 +296,23 @@ export function CreatePostContent() {
                         <p className="text-gray-500 text-sm">Draft and publish content across your connected platforms.</p>
                     </div>
 
-                    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl w-fit">
+                    {/* Mobile Tabs */}
+                    <div className="flex lg:hidden bg-gray-100 p-1 rounded-lg w-full sm:w-auto mb-2">
+                        <button
+                            onClick={() => setMobileTab('editor')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mobileTab === 'editor' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+                        >
+                            Editor
+                        </button>
+                        <button
+                            onClick={() => setMobileTab('preview')}
+                            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${mobileTab === 'preview' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}
+                        >
+                            Preview
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 bg-gray-100 p-1 rounded-xl w-fit hidden lg:flex">
                         <button
                             type="button"
                             onClick={() => setCreationMode('manual')}
@@ -316,7 +334,7 @@ export function CreatePostContent() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     {/* LEFT COLUMN: EDITOR */}
-                    <div className="space-y-6">
+                    <div className={clsx("space-y-6", mobileTab === 'preview' ? 'hidden lg:block' : 'block')}>
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {creationMode === 'ai' && (
                                 <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -490,7 +508,7 @@ export function CreatePostContent() {
                     </div>
 
                     {/* RIGHT COLUMN: PREVIEW */}
-                    <div className="lg:sticky lg:top-8 hidden lg:block">
+                    <div className={clsx("lg:sticky lg:top-8", mobileTab === 'editor' ? 'hidden lg:block' : 'block')}>
                         <PostPreview
                             caption={caption}
                             hashtags={hashtags}
