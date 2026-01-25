@@ -352,12 +352,12 @@ class MetaService {
     async _waitForInstagramMedia(creationId, accessToken) {
         let status = 'IN_PROGRESS';
         let attempts = 0;
-        const maxAttempts = 12; // Increased slightly for safety
+        const maxAttempts = 60; // 60 attempts * 5s = 5 minutes max wait
 
         while (status === 'IN_PROGRESS' && attempts < maxAttempts) {
             attempts++;
-            // Wait 3 seconds before checking
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // Wait 5 seconds before checking
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             try {
                 const statusResponse = await axios.get(`${FB_GRAPH_URL}/${creationId}`, {
