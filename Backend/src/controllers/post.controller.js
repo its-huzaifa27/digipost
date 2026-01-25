@@ -21,7 +21,10 @@ const storage = multer.diskStorage({
     }
 });
 
-export const upload = multer({ storage: storage });
+export const upload = multer({
+    storage: storage,
+    limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit
+});
 
 export const createPost = async (req, res) => {
     const userId = req.user.id; // From middleware
@@ -48,14 +51,15 @@ export const createPost = async (req, res) => {
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}${fileExt}`;
                 uploadedFilePaths.push(fileName); // Store path for cleanup
 
-                // Read file from disk
-                const fileBuffer = fs.readFileSync(file.path);
+                // Use Stream instead of Buffer for memory efficiency
+                const fileStream = fs.createReadStream(file.path);
 
                 const { data, error } = await supabase.storage
                     .from('uploads')
-                    .upload(fileName, fileBuffer, {
+                    .upload(fileName, fileStream, {
                         contentType: file.mimetype,
-                        upsert: false
+                        upsert: false,
+                        duplex: 'half' // Required for streams in Node.js
                     });
 
                 if (error) {

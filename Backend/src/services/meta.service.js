@@ -429,6 +429,23 @@ class MetaService {
                 console.warn(`[IG_INSIGHTS] Group 1 (Reach) failed:`, err.response?.data?.error?.message || err.message);
             }
 
+            // Group 1b: Impressions (Standard, Period: Day - Isolated)
+            // 'impressions' is deprecated/removed in v21.0 for this endpoint.
+            // 'views' is the new standard metric often equivalent to impressions or total views.
+            try {
+                const impressionMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'views',
+                        period: 'day',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(impressionMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 1b (Views/Impressions) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 1b (Views) failed:`, err.response?.data?.error?.message || err.message);
+            }
+
             // Group 2: Follower Count (Standard, Period: Day - might fail on some accounts (<100 followers), so isolated)
             try {
                 const followerMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
@@ -479,6 +496,39 @@ class MetaService {
                 console.warn(`[IG_INSIGHTS] Group 4 (Activity) failed:`, err.response?.data?.error?.message || err.message);
             }
 
+            // Group 5: Demographics (Lifetime, often fails for small accounts)
+            // Deprecated: 'audience_city', 'audience_country', 'audience_gender_age', 'audience_locale'
+            // New v21.0: 'follower_demographics' (aggregates city, country, gender, age)
+            try {
+                const demoMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'follower_demographics',
+                        period: 'lifetime',
+                        // metric_type: 'total_value', // Sometimes needed, let's try without first matching error suggestion
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(demoMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 5 (Demographics) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 5 (Demographics) failed:`, err.response?.data?.error?.message || err.message);
+            }
+
+            // Group 6: Online Followers (Lifetime)
+            try {
+                const onlineMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'online_followers',
+                        period: 'lifetime',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(onlineMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 6 (Online Followers) success`);
+            } catch (err) {
+                console.warn(`[IG_INSIGHTS] Group 6 (Online Followers) failed:`, err.response?.data?.error?.message || err.message);
+            }
+
 
             // 3. Fetch Top Media
             let topMedia = [];
@@ -496,16 +546,16 @@ class MetaService {
                 // Fetch insights for each media item to get views/impressions
                 topMedia = await Promise.all(mediaList.map(async (media) => {
                     try {
-                        let metricName = 'impressions'; // Default query
+                        let metricName = 'impressions,saved'; // Default query + saved
 
                         // Refined Logic
                         if (media.media_product_type === 'REELS') {
-                            metricName = 'plays';
+                            metricName = 'plays,saved';
                         } else if (media.media_type === 'VIDEO') {
                             // Videos might support 'plays' or 'video_views'. 'video_views' is safer for older videos.
-                            metricName = 'video_views';
+                            metricName = 'video_views,saved';
                         }
-                        // IMAGE / CAROUSEL_ALBUM -> impressions
+                        // IMAGE / CAROUSEL_ALBUM -> impressions,saved
 
                         const mInsights = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
                             params: {
@@ -514,13 +564,21 @@ class MetaService {
                             }
                         });
 
-                        const views = mInsights.data.data.find(i => i.name === metricName)?.values[0]?.value || 0;
-                        return { ...media, views };
+                        // Parse results (array of metrics)
+                        const results = mInsights.data.data || [];
+                        const viewsObj = results.find(i => i.name === 'impressions' || i.name === 'plays' || i.name === 'video_views');
+                        const savedObj = results.find(i => i.name === 'saved');
+
+                        return {
+                            ...media,
+                            views: viewsObj?.values[0]?.value || 0,
+                            saved: savedObj?.values[0]?.value || 0
+                        };
                     } catch (err) {
                         // Silent fail for individual media insights to prevent log spam
                         // console.warn(`[IG_INSIGHTS] Media insight failed for ${media.id}: ${err.message}`);
-                        // Just return 0 views
-                        return { ...media, views: 0 };
+                        // Just return basic info
+                        return { ...media, views: 0, saved: 0 };
                     }
                 }));
                 console.log(`[IG_INSIGHTS] Top media fetch success`);
@@ -574,8 +632,9 @@ class MetaService {
             try {
                 const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
                     params: {
-                        // Updated stable metrics for v21.0 (removed page_views_total if deprecated, added page_impressions)
-                        metric: 'page_impressions_unique,page_daily_active_users,page_impressions',
+                        // Updated stable metrics for v21.0
+                        // Added: page_fan_adds (New Likes), page_post_engagements
+                        metric: 'page_impressions_unique,page_daily_active_users,page_impressions,page_fan_adds,page_post_engagements',
                         period: 'day',
                         access_token: connection.accessToken
                     }
