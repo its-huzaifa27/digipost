@@ -298,53 +298,73 @@ class MetaService {
                 throw new Error(`Profile Error: ${profileErr.response?.data?.error?.message || profileErr.message}`);
             }
 
-            // 2. Fetch Insights (Reach, Views, Interactions, etc.)
+            // 2. Fetch Insights (Grouped by Compatibility)
             let insightsData = [];
 
-            // Block A: Metrics requiring 'total_value' (including views breakdown)
+            // Group 1: Standard Daily Metrics (Reach, Impressions)
             try {
-                const totalValueInsights = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                const standardMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
-                        metric: 'views,reach,total_interactions,accounts_engaged,profile_views',
+                        metric: 'reach,impressions',
                         period: 'day',
-                        breakdown: 'follow_type',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(standardMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 1 (Standard) success`);
+            } catch (err1) {
+                console.warn(`[IG_INSIGHTS] Group 1 failed:`, err1.response?.data?.error?.message || err1.message);
+            }
+
+            // Group 2: Interaction Metrics (Total Interactions, Accounts Engaged) - requires metric_type=total_value usually not needed for these but let's separate
+            try {
+                // Note: 'total_interactions' and 'accounts_engaged' often don't support 'period=day' the same way or require specific flags.
+                // Reverting to safe 'follower_count' in a separate block if needed, but let's try interactions.
+                // Actually, 'total_interactions' isn't always available on all accounts.
+                const activityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'total_interactions,accounts_engaged',
+                        period: 'day',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(activityMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 2 (Activity) success`);
+            } catch (err2) {
+                console.warn(`[IG_INSIGHTS] Group 2 failed:`, err2.response?.data?.error?.message || err2.message);
+            }
+
+            // Group 3: Profile Activity (Profile Views, Website Clicks) - These OFTEN need metric_type=total_value
+            try {
+                const profileActivityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'profile_views',
+                        period: 'day',
+                        access_token: connection.accessToken
+                    }
+                });
+                insightsData = [...insightsData, ...(profileActivityMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 3 (Profile) success`);
+            } catch (err3) {
+                console.warn(`[IG_INSIGHTS] Group 3 failed:`, err3.response?.data?.error?.message || err3.message);
+            }
+
+            // Group 4: Total Value Metrics (Profile Links Taps)
+            try {
+                const totalValueMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                    params: {
+                        metric: 'profile_links_taps',
+                        period: 'day',
                         metric_type: 'total_value',
                         access_token: connection.accessToken
                     }
                 });
-                insightsData = [...insightsData, ...(totalValueInsights.data.data || [])];
-                console.log(`[IG_INSIGHTS] Block A (total_value) success`);
-            } catch (errA) {
-                console.warn(`[IG_INSIGHTS] Block A failed:`, errA.response?.data?.error?.message || errA.message);
-                // Fallback for Block A without breakdown/total_value if needed
-                try {
-                    const fallbackA = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                        params: {
-                            metric: 'reach,impressions',
-                            period: 'day',
-                            access_token: connection.accessToken
-                        }
-                    });
-                    insightsData = [...insightsData, ...(fallbackA.data.data || [])];
-                } catch (innerA) {
-                    console.error(`[IG_INSIGHTS] Fallback A failed:`, innerA.message);
-                }
+                insightsData = [...insightsData, ...(totalValueMetrics.data.data || [])];
+                console.log(`[IG_INSIGHTS] Group 4 (Total Value) success`);
+            } catch (err4) {
+                console.warn(`[IG_INSIGHTS] Group 4 failed:`, err4.response?.data?.error?.message || err4.message);
             }
 
-            // Block B: Metrics NOT using 'total_value' (follower_count, etc.)
-            try {
-                const standardInsights = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'follower_count,profile_links_taps',
-                        period: 'day',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(standardInsights.data.data || [])];
-                console.log(`[IG_INSIGHTS] Block B success`);
-            } catch (errB) {
-                console.warn(`[IG_INSIGHTS] Block B failed:`, errB.response?.data?.error?.message || errB.message);
-            }
 
             // 3. Fetch Top Media
             let topMedia = [];
@@ -362,14 +382,16 @@ class MetaService {
                 // Fetch insights for each media item to get views/impressions
                 topMedia = await Promise.all(mediaList.map(async (media) => {
                     try {
-                        let metricName = 'impressions'; // Default for IMAGE/CAROUSEL
+                        let metricName = 'impressions'; // Default query
 
-                        // Determine metric based on type
+                        // Refined Logic
                         if (media.media_product_type === 'REELS') {
                             metricName = 'plays';
                         } else if (media.media_type === 'VIDEO') {
-                            metricName = 'video_views'; // Or 'plays' depending on API version, keeping 'video_views' as requested fallback
+                            // Videos might support 'plays' or 'video_views'. 'video_views' is safer for older videos.
+                            metricName = 'video_views';
                         }
+                        // IMAGE / CAROUSEL_ALBUM -> impressions
 
                         const mInsights = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
                             params: {
@@ -381,7 +403,9 @@ class MetaService {
                         const views = mInsights.data.data.find(i => i.name === metricName)?.values[0]?.value || 0;
                         return { ...media, views };
                     } catch (err) {
-                        console.warn(`[IG_INSIGHTS] Media insight failed for ${media.id} (${media.media_type}/${media.media_product_type}):`, err.message);
+                        // Silent fail for individual media insights to prevent log spam
+                        // console.warn(`[IG_INSIGHTS] Media insight failed for ${media.id}: ${err.message}`);
+                        // Just return 0 views
                         return { ...media, views: 0 };
                     }
                 }));
