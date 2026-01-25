@@ -1,5 +1,6 @@
 import Client from '../models/client.model.js';
 import User from '../models/user.model.js';
+import PlatformConnection from '../models/platformConnection.model.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
@@ -10,19 +11,16 @@ export const getDashboardStats = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Logic to filter by client if provided
-        const whereClause = { userId };
-        if (clientId && clientId !== 'all') {
-            whereClause.id = clientId;
-        }
+        // 1. Fetch Clients with their Platform Connections
+        const clients = await Client.findAll({
+            where: { userId },
+            include: [{
+                model: PlatformConnection,
+                attributes: ['platform', 'isActive']
+            }]
+        });
 
-        // 1. Fetch Clients (to verify ownership or count)
-        const clients = await Client.findAll({ where: { userId } });
-
-        // 2. Calculate Stats
-        // Since we don't have a real Post model with data yet, we will return 0s 
-        // effectively making it "dynamic" (real-time zero).
-        
+        // 2. Calculate Stats (Skeleton for now)
         let stats = {
             totalPosts: 0,
             engagementRate: 0,
@@ -39,22 +37,28 @@ export const getDashboardStats = async (req, res) => {
             ]
         };
 
-        // If we had a Post model, we would do:
-        // const postCount = await Post.count({ where: ... });
-        // stats.totalPosts = postCount;
-        
-        // For now, we can perhaps simulate "Followers" based on some client property if it existed,
-        // but for strict "get form backend database ONLY" compliance, we return 0 
-        // or values if we add columns to the clients table.
-        // The clients table DOES NOT have 'followers' column, so we return 0.
+        // Format clients to include a simple 'platforms' map for the frontend
+        const formattedClients = clients.map(c => {
+            const platforms = {};
+            if (c.PlatformConnections) {
+                c.PlatformConnections.forEach(pc => {
+                    if (pc.isActive) {
+                        platforms[pc.platform] = { connected: true };
+                    }
+                });
+            }
+
+            return {
+                id: c.id,
+                name: c.name,
+                industry: c.industry,
+                platforms: platforms // { instagram: { connected: true }, ... }
+            };
+        });
 
         res.json({
             stats,
-            clients: clients.map(c => ({
-                id: c.id,
-                name: c.name,
-                industry: c.industry
-            }))
+            clients: formattedClients
         });
 
     } catch (error) {
