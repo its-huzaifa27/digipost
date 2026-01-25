@@ -42,24 +42,27 @@ export function TopBar({ clients, selectedClientId, onSelectClient }) {
                     </button>
 
                     {/* Dropdown Menu */}
-                    <div className="absolute top-full left-0 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden hidden group-hover:block animate-fade-in-down z-50">
-                        <button
-                            onClick={() => onSelectClient('all')}
-                            className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50"
-                        >
-                            <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">ALL</div>
-                            <span className="font-medium text-sm text-gray-700">All Clients</span>
-                        </button>
-                        {clients.map(client => (
+                    {/* Dropdown Menu */}
+                    <div className="absolute top-full left-0 w-full pt-1 hidden group-hover:block z-50">
+                        <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in-down">
                             <button
-                                key={client.id}
-                                onClick={() => onSelectClient(client.id)}
-                                className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                onClick={() => onSelectClient('all')}
+                                className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left border-b border-gray-50"
                             >
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(client.name)}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-lg" />
-                                <span className="font-medium text-sm text-gray-700">{client.name}</span>
+                                <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center font-bold text-xs">ALL</div>
+                                <span className="font-medium text-sm text-gray-700">All Clients</span>
                             </button>
-                        ))}
+                            {clients.map(client => (
+                                <button
+                                    key={client.id}
+                                    onClick={() => onSelectClient(client.id)}
+                                    className="flex items-center space-x-3 w-full px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                >
+                                    <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(client.name)}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-lg" />
+                                    <span className="font-medium text-sm text-gray-700">{client.name}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

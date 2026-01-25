@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FullWidthLayout } from '../components/layout/FullWidthLayout';
 import { TopBar } from '../components/dashboard/TopBar';
 import { ConnectedPlatformsWidget } from '../components/dashboard/ConnectedPlatformsWidget';
@@ -23,7 +23,13 @@ export function Dashboard() {
     const [clients, setClients] = useState([]);
     const [selectedClientName, setSelectedClientName] = useState('All Clients');
 
-    const [activeView, setActiveView] = useState('overview'); // 'overview', 'analytics', 'create-post', 'ai-agent'
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeView = searchParams.get('view') || 'overview'; // 'overview', 'analytics', 'create-post', 'ai-agent'
+
+    // Helper to switch views
+    const setActiveView = (view) => {
+        setSearchParams({ view });
+    };
 
     // Initialize from localStorage on mount
     useEffect(() => {

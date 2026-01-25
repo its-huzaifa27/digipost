@@ -3,6 +3,7 @@ import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Card } from "../ui/Card";
 import { MediaUploader } from "../features/create-post/MediaUploader";
+import { PostPreview } from "../features/create-post/PostPreview";
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen } from 'react-icons/fa6';
 
 export function CreatePostContent() {
@@ -285,7 +286,7 @@ export function CreatePostContent() {
     };
 
     return (
-        <Card className="w-full max-w-2xl mx-auto shadow-none border-none">
+        <div className="w-full mx-auto">
             <div className="p-4 md:p-8 space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div className="flex flex-col gap-1">
@@ -313,189 +314,203 @@ export function CreatePostContent() {
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {creationMode === 'ai' && (
-                        <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                            <div className="flex items-center gap-2 text-purple-700 font-bold mb-1">
-                                <FaRobot />
-                                <span>AI Assistant</span>
-                            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                    {/* LEFT COLUMN: EDITOR */}
+                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {creationMode === 'ai' && (
+                                <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                                    <div className="flex items-center gap-2 text-purple-700 font-bold mb-1">
+                                        <FaRobot />
+                                        <span>AI Assistant</span>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                                            What should this post be about?
+                                        </label>
+                                        <textarea
+                                            placeholder="Enter a topic, describe an image, or provide keywords..."
+                                            value={aiPrompt}
+                                            onChange={(e) => setAiPrompt(e.target.value)}
+                                            rows="3"
+                                            className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-70 disabled:cursor-not-allowed"
+                                        onClick={handleAiGenerate}
+                                        disabled={isGeneratingAi}
+                                    >
+                                        {isGeneratingAi ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Magic is happening...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <FaRobot className="mr-2" />
+                                                Generate Caption & Hashtags
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        className="w-full bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                                        onClick={handleImageGenerate}
+                                        disabled={isGeneratingImage}
+                                    >
+                                        {isGeneratingImage ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <span>Painting pixels...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <FaPen className="mr-2" />
+                                                Generate Image
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                                    What should this post be about?
+                                    Caption:
                                 </label>
                                 <textarea
-                                    placeholder="Enter a topic, describe an image, or provide keywords..."
-                                    value={aiPrompt}
-                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    placeholder="Write your caption here..."
+                                    value={caption}
+                                    onChange={(e) => setCaption(e.target.value)}
                                     rows="3"
-                                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
                                 />
                             </div>
-                            <Button
-                                type="button"
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-70 disabled:cursor-not-allowed"
-                                onClick={handleAiGenerate}
-                                disabled={isGeneratingAi}
-                            >
-                                {isGeneratingAi ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Magic is happening...</span>
+
+                            <Input
+                                label="Hashtags:"
+                                placeholder="#hashtags (e.g. #socialmedia #marketing)"
+                                value={hashtags}
+                                onChange={(e) => setHashtags(e.target.value)}
+                            />
+
+                            <MediaUploader
+                                media={media}
+                                onFileChange={setMedia}
+                                onDrop={setMedia}
+                            />
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-2">Publish to:</label>
+                                {socialAccounts.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {socialAccounts.map(account => (
+                                            <div
+                                                key={account.id}
+                                                className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all group ${selectedPlatforms.includes(account.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                                                onClick={() => togglePlatform(account.id)}
+                                            >
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${account.color}`}>
+                                                    {account.icon}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="text-sm font-medium text-gray-900 block truncate">{account.name}</span>
+                                                    <span className="text-xs text-gray-500 truncate">{account.username}</span>
+                                                </div>
+
+                                                {/* Disconnect Button (Always Visible) */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleDisconnect(e, account.id, account.name)}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                                    title="Disconnect Account"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+
+                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedPlatforms.includes(account.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
+                                                    {selectedPlatforms.includes(account.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
-                                    <>
-                                        <FaRobot className="mr-2" />
-                                        Generate Caption & Hashtags
-                                    </>
+                                    <div className="p-4 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-200">
+                                        No connected accounts found.
+                                    </div>
                                 )}
-                            </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="block text-sm font-semibold text-gray-900">Publishing Options:</label>
+                                <div className="flex space-x-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsScheduled(false)}
+                                        className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${!isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
+                                    >
+                                        Post Now
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsScheduled(true)}
+                                        className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
+                                    >
+                                        Schedule
+                                    </button>
+                                </div>
+
+                                {isScheduled && (
+                                    <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
+                                            Scheduled Time:
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={scheduledDate}
+                                            onChange={(e) => setScheduledDate(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
+                                            min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
                             <Button
-                                type="button"
-                                className="w-full bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-70 disabled:cursor-not-allowed mt-2"
-                                onClick={handleImageGenerate}
-                                disabled={isGeneratingImage}
+                                type="submit"
+                                className="w-full"
+                                size="lg"
                             >
-                                {isGeneratingImage ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        <span>Painting pixels...</span>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <FaPen className="mr-2" />
-                                        Generate Image
-                                    </>
-                                )}
+                                {isScheduled ? 'Schedule Post' : 'Post Now'}
                             </Button>
-                        </div>
-                    )}
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">
-                            Caption:
-                        </label>
-                        <textarea
-                            placeholder="Write your caption here..."
-                            value={caption}
-                            onChange={(e) => setCaption(e.target.value)}
-                            rows="3"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-700 placeholder-gray-400"
+                        </form>
+                    </div>
+
+                    {/* RIGHT COLUMN: PREVIEW */}
+                    <div className="lg:sticky lg:top-8 hidden lg:block">
+                        <PostPreview
+                            caption={caption}
+                            hashtags={hashtags}
+                            media={media}
+                            clientName={JSON.parse(localStorage.getItem('selectedClient') || '{}').name}
                         />
                     </div>
-
-                    <Input
-                        label="Hashtags:"
-                        placeholder="#hashtags (e.g. #socialmedia #marketing)"
-                        value={hashtags}
-                        onChange={(e) => setHashtags(e.target.value)}
-                    />
-
-                    <MediaUploader
-                        media={media}
-                        onFileChange={setMedia}
-                        onDrop={setMedia}
-                    />
-
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">Publish to:</label>
-                        {socialAccounts.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {socialAccounts.map(account => (
-                                    <div
-                                        key={account.id}
-                                        className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer transition-all group ${selectedPlatforms.includes(account.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
-                                        onClick={() => togglePlatform(account.id)}
-                                    >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${account.color}`}>
-                                            {account.icon}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <span className="text-sm font-medium text-gray-900 block truncate">{account.name}</span>
-                                            <span className="text-xs text-gray-500 truncate">{account.username}</span>
-                                        </div>
-
-                                        {/* Disconnect Button (Always Visible) */}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => handleDisconnect(e, account.id, account.name)}
-                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
-                                            title="Disconnect Account"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-
-                                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedPlatforms.includes(account.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`}>
-                                            {selectedPlatforms.includes(account.id) && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-4 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-200">
-                                No connected accounts found.
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="block text-sm font-semibold text-gray-900">Publishing Options:</label>
-                        <div className="flex space-x-4">
-                            <button
-                                type="button"
-                                onClick={() => setIsScheduled(false)}
-                                className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${!isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
-                            >
-                                Post Now
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsScheduled(true)}
-                                className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-all ${isScheduled ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'}`}
-                            >
-                                Schedule
-                            </button>
-                        </div>
-
-                        {isScheduled && (
-                            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">
-                                    Scheduled Time:
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    value={scheduledDate}
-                                    onChange={(e) => setScheduledDate(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
-                                    min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <Button
-                        type="submit"
-                        className="w-full"
-                        size="lg"
-                    >
-                        {isScheduled ? 'Schedule Post' : 'Post Now'}
-                    </Button>
-
                     {showSuccess && (
-                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
                             <span className="text-green-800 font-medium">Posted Successfully!</span>
                         </div>
                     )}
 
                     {showError && (
-                        <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
                             <span className="text-red-800 font-medium">Failed to Post. Check details and try again.</span>
                         </div>
                     )}
-                </form>
+                </div>
             </div>
-        </Card>
+        </div>
     );
 }
