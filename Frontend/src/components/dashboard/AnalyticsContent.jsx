@@ -81,17 +81,17 @@ export function AnalyticsContent() {
     }
 
     const viewsData = insights?.insights?.find(i => i.name === 'views');
-    const totalViews = viewsData?.values[0]?.value || 0;
+    const totalViews = viewsData?.values?.[0]?.value || 0;
 
     // Extract breakdown if available
-    const breakdown = viewsData?.values[0]?.breakdowns?.[0]?.results || [];
+    const breakdown = viewsData?.values?.[0]?.breakdowns?.[0]?.results || [];
     const followersViews = breakdown.find(b => b.dimension_values?.[0] === 'follower')?.value || 0;
     const nonFollowersViews = breakdown.find(b => b.dimension_values?.[0] === 'non_follower')?.value || 0;
 
     const followerPercentage = totalViews > 0 ? (followersViews / totalViews * 100).toFixed(1) : 0;
     const nonFollowerPercentage = totalViews > 0 ? (nonFollowersViews / totalViews * 100).toFixed(1) : 100;
 
-    const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values[0]?.value || 0;
+    const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values?.[0]?.value || 0;
 
     return (
         <div className="space-y-8 bg-gray-600 min-h-screen p-4 md:p-8 text-white rounded-3xl">

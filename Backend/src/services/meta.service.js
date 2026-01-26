@@ -2,7 +2,7 @@ import axios from 'axios';
 import PlatformConnection from '../models/platformConnection.model.js';
 import { encrypt, decrypt } from '../utils/encryption.js';
 
-const FB_GRAPH_URL = 'https://graph.facebook.com/v21.0';
+const FB_GRAPH_URL = 'https://graph.facebook.com/v22.0';
 
 class MetaService {
     // --------------------------------------------------------------------------
@@ -385,157 +385,69 @@ class MetaService {
 
 
     /**
-     * Fetches Instagram Insights (Followers, Reach, Impressions).
+     * Fetches Instagram Insights with tiered fallbacks for Views.
+     * Solves "0 Views" bug by checking Field -> Plays Metric -> Reach Metric.
      */
     async getInstagramInsights(connection) {
-        console.log(`[IG_INSIGHTS] Starting fetch for: ${connection.pageName} (${connection.igBusinessId})`);
+        console.log(`[IG_INSIGHTS] Starting fetch for: ${connection.pageName}`);
 
         try {
-            if (!connection.igBusinessId) {
-                throw new Error("This connection is not linked to an Instagram Business account.");
-            }
+            if (!connection.igBusinessId) throw new Error("No IG Business ID linked.");
 
-            // 1. Fetch Basic Info (Total Followers)
+            // 1. Fetch Profile
             let profileData = {};
             try {
-                const basicInfoResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}`, {
+                const profileRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}`, {
                     params: {
                         fields: 'followers_count,media_count,username,name,profile_picture_url',
                         access_token: connection.accessToken
                     }
                 });
-                profileData = basicInfoResponse.data;
-                console.log(`[IG_INSIGHTS] Profile fetch success: ${profileData.followers_count} followers`);
-            } catch (profileErr) {
-                console.error(`[IG_INSIGHTS] Profile fetch failed:`, profileErr.response?.data || profileErr.message);
-                throw new Error(`Profile Error: ${profileErr.response?.data?.error?.message || profileErr.message}`);
-            }
+                profileData = profileRes.data;
+            } catch (err) { console.error('[IG_INSIGHTS] Profile Fetch Error:', err.message); }
 
-            // 2. Fetch Insights (Grouped by Compatibility)
+            // 2. Account Insights (v22.0 Safe)
             let insightsData = [];
+            const commonParams = { period: 'day', access_token: connection.accessToken };
 
-            // Group 1: Reach (Standard, Period: Day)
-            try {
-                const reachMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'reach',
-                        period: 'day',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(reachMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 1 (Reach) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 1 (Reach) failed:`, err.response?.data?.error?.message || err.message);
-            }
+            // Helper to fetch account metrics safely
+            const fetchAccountMetric = async (metric, type = null) => {
+                try {
+                    const params = { ...commonParams, metric };
+                    if (type) params.metric_type = type; // v22 Requirement
+                    const res = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, { params });
+                    return res.data.data || [];
+                } catch (e) {
+                    // console.warn(`[IG_INSIGHTS] Metric ${metric} failed: ${e.response?.data?.error?.message}`);
+                    return [];
+                }
+            };
 
-            // Group 1b: Impressions (Standard, Period: Day - Isolated)
-            // 'impressions' is deprecated/removed in v21.0 for this endpoint.
-            // 'views' is the new standard metric often equivalent to impressions or total views.
-            try {
-                const impressionMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'views',
-                        period: 'day',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(impressionMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 1b (Views/Impressions) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 1b (Views) failed:`, err.response?.data?.error?.message || err.message);
-            }
+            insightsData.push(...await fetchAccountMetric('reach'));
+            insightsData.push(...await fetchAccountMetric('views,total_interactions,accounts_engaged,profile_views,website_clicks', 'total_value'));
+            insightsData.push(...await fetchAccountMetric('follower_count')); // Might fail on small acts
 
-            // Group 2: Follower Count (Standard, Period: Day - might fail on some accounts (<100 followers), so isolated)
+            // Demographics with breakdown
             try {
-                const followerMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'follower_count',
-                        period: 'day',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(followerMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 2 (Follower Count) success`);
-            } catch (err) {
-                // Common failure for small accounts
-                console.warn(`[IG_INSIGHTS] Group 2 (Follower Count) failed:`, err.response?.data?.error?.message || err.message);
-            }
-
-            // Group 3: Privacy Protected Metrics (Require metric_type=total_value)
-            // 'total_interactions', 'accounts_engaged', 'profile_views'
-            try {
-                const totalValueMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'total_interactions,accounts_engaged,profile_views',
-                        period: 'day',
-                        metric_type: 'total_value',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(totalValueMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 3 (Total Value) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 3 (Total Value) failed:`, err.response?.data?.error?.message || err.message);
-            }
-
-            // Group 4: Profile Activity (some might not need total_value but grouping safe ones)
-            // 'profile_links_taps', 'website_clicks'
-            try {
-                const activityMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'profile_links_taps,website_clicks',
-                        period: 'day',
-                        metric_type: 'total_value', // Often required for these too
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(activityMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 4 (Activity) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 4 (Activity) failed:`, err.response?.data?.error?.message || err.message);
-            }
-
-            // Group 5: Demographics (Lifetime, often fails for small accounts)
-            // Deprecated: 'audience_city', 'audience_country', 'audience_gender_age', 'audience_locale'
-            // New v21.0: 'follower_demographics' (aggregates city, country, gender, age)
-            try {
-                const demoMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                const demoRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
                     params: {
                         metric: 'follower_demographics',
                         period: 'lifetime',
-                        // metric_type: 'total_value', // Sometimes needed, let's try without first matching error suggestion
+                        metric_type: 'total_value',
+                        breakdown: 'age,gender,country,city',
                         access_token: connection.accessToken
                     }
                 });
-                insightsData = [...insightsData, ...(demoMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 5 (Demographics) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 5 (Demographics) failed:`, err.response?.data?.error?.message || err.message);
-            }
+                insightsData.push(...(demoRes.data.data || []));
+            } catch (e) { /* Ignore demo fails */ }
 
-            // Group 6: Online Followers (Lifetime)
-            try {
-                const onlineMetrics = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                    params: {
-                        metric: 'online_followers',
-                        period: 'lifetime',
-                        access_token: connection.accessToken
-                    }
-                });
-                insightsData = [...insightsData, ...(onlineMetrics.data.data || [])];
-                console.log(`[IG_INSIGHTS] Group 6 (Online Followers) success`);
-            } catch (err) {
-                console.warn(`[IG_INSIGHTS] Group 6 (Online Followers) failed:`, err.response?.data?.error?.message || err.message);
-            }
-
-
-            // 3. Fetch Top Media
+            // 3. Media Insights (The "0 Views" Fix)
             let topMedia = [];
             try {
+                // Step A: Get the list with the 'ig_play_count' field
                 const mediaResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, {
                     params: {
-                        fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count',
+                        fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count,ig_play_count',
                         limit: 10,
                         access_token: connection.accessToken
                     }
@@ -543,57 +455,104 @@ class MetaService {
 
                 const mediaList = mediaResponse.data.data || [];
 
-                // Fetch insights for each media item to get views/impressions
                 topMedia = await Promise.all(mediaList.map(async (media) => {
-                    try {
-                        let metricName = 'impressions,saved'; // Default query + saved
+                    let views = 0;
+                    let saved = 0;
 
-                        // Refined Logic
-                        if (media.media_product_type === 'REELS') {
-                            metricName = 'plays,saved';
-                        } else if (media.media_type === 'VIDEO') {
-                            // Videos might support 'plays' or 'video_views'. 'video_views' is safer for older videos.
-                            metricName = 'video_views,saved';
+                    // --- VIEW COUNT STRATEGY ---
+
+                    // CASE 1: REELS & VIDEOS
+                    if (media.media_type === 'VIDEO' || media.media_product_type === 'REELS') {
+                        // Priority 1: Field 'ig_play_count' (Fastest)
+                        if (media.ig_play_count !== undefined) {
+                            views = media.ig_play_count;
                         }
-                        // IMAGE / CAROUSEL_ALBUM -> impressions,saved
-
-                        const mInsights = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
-                            params: {
-                                metric: metricName,
-                                access_token: connection.accessToken
+                        // Priority 2: Metric 'plays' (Reliable Fallback)
+                        else {
+                            try {
+                                const playsRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                                    params: { metric: 'plays', access_token: connection.accessToken }
+                                });
+                                views = playsRes.data.data?.[0]?.values?.[0]?.value || 0;
+                                console.log(`[IG_DEBUG] Recovered Views via 'plays' metric for ${media.id}: ${views}`);
+                            } catch (err) {
+                                // Priority 3: Metric 'reach' (Last Resort)
+                                try {
+                                    const reachRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                                        params: { metric: 'reach', access_token: connection.accessToken }
+                                    });
+                                    views = reachRes.data.data?.[0]?.values?.[0]?.value || 0;
+                                } catch (e) { /* Give up */ }
                             }
-                        });
-
-                        // Parse results (array of metrics)
-                        const results = mInsights.data.data || [];
-                        const viewsObj = results.find(i => i.name === 'impressions' || i.name === 'plays' || i.name === 'video_views');
-                        const savedObj = results.find(i => i.name === 'saved');
-
-                        return {
-                            ...media,
-                            views: viewsObj?.values[0]?.value || 0,
-                            saved: savedObj?.values[0]?.value || 0
-                        };
-                    } catch (err) {
-                        // Silent fail for individual media insights to prevent log spam
-                        // console.warn(`[IG_INSIGHTS] Media insight failed for ${media.id}: ${err.message}`);
-                        // Just return basic info
-                        return { ...media, views: 0, saved: 0 };
+                        }
                     }
+
+                    // CASE 2: IMAGES & CAROUSELS
+                    else {
+                        let viewSuccess = false;
+
+                        // Priority 1: Metric 'views' (New Standard for v22+)
+                        try {
+                            const viewsRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                                params: { metric: 'views', access_token: connection.accessToken }
+                            });
+                            // Check deep structure safely
+                            const val = viewsRes.data.data?.[0]?.values?.[0]?.value;
+                            if (val !== undefined) {
+                                views = val;
+                                viewSuccess = true;
+                                console.log(`[IG_DEBUG] Views via 'views' metric for Image ${media.id}: ${views}`);
+                            }
+                        } catch (e) { /* Ignore */ }
+
+                        // Priority 2: Metric 'impressions' (Deprecated but might work for old media)
+                        if (!viewSuccess) {
+                            try {
+                                const impRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                                    params: { metric: 'impressions', access_token: connection.accessToken }
+                                });
+                                views = impRes.data.data?.[0]?.values?.[0]?.value || 0;
+                                viewSuccess = true;
+                            } catch (e) { /* Expected failure in v22 */ }
+                        }
+
+                        // Priority 3: Metric 'reach' (Safe Fallback)
+                        if (!viewSuccess) {
+                            try {
+                                const reachRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                                    params: { metric: 'reach', access_token: connection.accessToken }
+                                });
+                                views = reachRes.data.data?.[0]?.values?.[0]?.value || 0;
+                                console.log(`[IG_DEBUG] Views via 'reach' for Image ${media.id}: ${views}`);
+                            } catch (e) {
+                                console.warn(`[IG_DEBUG] Failed all View metrics for Image ${media.id}`);
+                            }
+                        }
+                    }
+
+                    // --- SAVED COUNT ---
+                    try {
+                        const savedRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                            params: { metric: 'saved', access_token: connection.accessToken }
+                        });
+                        saved = savedRes.data.data?.[0]?.values?.[0]?.value || 0;
+                    } catch (e) { /* Ignore */ }
+
+                    return {
+                        ...media,
+                        views: views, // This will now hold Field OR Plays OR Reach
+                        saved: saved
+                    };
                 }));
-                console.log(`[IG_INSIGHTS] Top media fetch success`);
+
             } catch (mediaErr) {
-                console.warn(`[IG_INSIGHTS] Top media fetch failed:`, mediaErr.message);
+                console.error('[IG_INSIGHTS] Fatal Media List Error:', mediaErr.message);
             }
 
-            return {
-                profile: profileData,
-                insights: insightsData,
-                topMedia: topMedia
-            };
+            return { profile: profileData, insights: insightsData, topMedia: topMedia };
 
         } catch (error) {
-            console.error(`[IG_INSIGHTS] Global catch:`, error.message);
+            console.error('[IG_INSIGHTS] Critical Failure:', error.message);
             throw error;
         }
     }
