@@ -35,7 +35,9 @@ const Client = sequelize.define('Client', {
     linkedinEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
     whatsappEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
     pinterestEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
-    tiktokEnabled: { type: DataTypes.BOOLEAN, defaultValue: false }
+    tiktokEnabled: { type: DataTypes.BOOLEAN, defaultValue: false },
+    // Service Status (Pause/Resume)
+    isActive: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, {
     tableName: 'Clients', // PascalCase table
     timestamps: true

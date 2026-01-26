@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaInstagram, FaLinkedin, FaTwitter, FaFacebook, FaTiktok, FaPinterest, FaWhatsapp } from 'react-icons/fa6';
+import { FaInstagram, FaLinkedin, FaTwitter, FaFacebook, FaTiktok, FaPinterest, FaWhatsapp, FaPlay, FaPause, FaCircleCheck } from 'react-icons/fa6';
 import { clsx } from 'clsx';
 import { Button } from '../ui/Button';
 
@@ -72,11 +72,13 @@ const ConnectionBadges = ({ connections }) => {
     );
 };
 
-export function ClientCard({ client, onManage }) {
+export function ClientCard({ client, onManage, onToggleStatus }) {
+    const isActive = client.isActive !== false; // Default true
+
     return (
         <motion.div
             whileHover={{ y: -4, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.1)" }}
-            className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col h-full transition-shadow duration-200"
+            className={`bg-white rounded-xl border p-6 flex flex-col h-full transition-shadow duration-200 ${isActive ? 'border-gray-100' : 'border-red-100 bg-red-50/10'}`}
         >
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
@@ -84,15 +86,45 @@ export function ClientCard({ client, onManage }) {
                     <img
                         src={client.logo}
                         alt={client.name}
-                        className="w-12 h-12 rounded-lg object-cover bg-gray-50 ring-1 ring-gray-100"
+                        className={`w-12 h-12 rounded-lg object-cover ring-1 ${isActive ? 'bg-gray-50 ring-gray-100' : 'bg-red-50 ring-red-100 grayscale'}`}
                     />
                     <div>
                         <h3 className="font-bold text-gray-900 leading-tight">{client.name}</h3>
-                        <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">
-                            {client.industry}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                {client.industry}
+                            </span>
+                        </div>
                     </div>
                 </div>
+
+                {/* Status Toggle */}
+                <button
+                    onClick={onToggleStatus}
+                    className={clsx(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm",
+                        isActive
+                            ? "bg-green-50 text-green-700 border-green-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 group"
+                            : "bg-red-50 text-red-700 border-red-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200"
+                    )}
+                    title={isActive ? "Click to Suspend Services" : "Click to Resume Services"}
+                >
+                    {isActive ? (
+                        <>
+                            <FaCircleCheck className="group-hover:hidden" />
+                            <FaPause className="hidden group-hover:block" />
+                            <span className="group-hover:hidden">Active</span>
+                            <span className="hidden group-hover:inline">Suspend</span>
+                        </>
+                    ) : (
+                        <>
+                            <FaPause className="group-hover:hidden" />
+                            <FaPlay className="hidden group-hover:block" />
+                            <span className="group-hover:hidden">Suspended</span>
+                            <span className="hidden group-hover:inline">Resume</span>
+                        </>
+                    )}
+                </button>
             </div>
 
             {/* Stats Grid */}

@@ -52,4 +52,10 @@ const Post = sequelize.define('Post', {
     timestamps: true,
 });
 
+import Client from './client.model.js';
+
+// Define Associations
+Post.belongsTo(Client, { foreignKey: 'clientId' });
+Client.hasMany(Post, { foreignKey: 'clientId' });
+
 export default Post;

@@ -41,6 +41,7 @@ export function Clients() {
                     industry: c.industry || 'General',
                     logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
                     connections: c.connections || [],
+                    isActive: c.is_active !== false, // Default to true if undefined
                     stats: {
                         totalPosts: 0, // Placeholder
                         followers: '0'   // Placeholder
@@ -61,6 +62,36 @@ export function Clients() {
             console.error("Failed to fetch clients", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleToggleStatus = async (e, client) => {
+        e.stopPropagation();
+        if (!confirm(`Are you sure you want to ${client.isActive ? 'Suspend' : 'Resume'} services for ${client.name}?`)) return;
+
+        const originalState = [...clients];
+        // Optimistic UI update
+        setClients(prev => prev.map(c => c.id === client.id ? { ...c, isActive: !c.isActive } : c));
+
+        try {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const token = localStorage.getItem('token');
+
+            const res = await fetch(`${API_URL}/api/clients/${client.id}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ isActive: !client.isActive })
+            });
+
+            if (!res.ok) throw new Error('Failed to update status');
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update status.");
+            setClients(originalState); // Revert
         }
     };
 
@@ -105,7 +136,11 @@ export function Clients() {
                                     onClick={() => handleSelectClient(client)}
                                     className="cursor-pointer h-full"
                                 >
-                                    <ClientCard client={client} onManage={() => handleSelectClient(client)} />
+                                    <ClientCard
+                                        client={client}
+                                        onManage={() => handleSelectClient(client)}
+                                        onToggleStatus={(e) => handleToggleStatus(e, client)}
+                                    />
                                 </motion.div>
                             ))}
                         </div>

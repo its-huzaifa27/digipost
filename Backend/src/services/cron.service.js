@@ -5,6 +5,8 @@ import Post from '../models/post.model.js';
 import PlatformConnection from '../models/platformConnection.model.js';
 import metaService from './meta.service.js';
 
+import Client from '../models/client.model.js';
+
 class CronService {
     constructor() {
         this.job = null;
@@ -12,7 +14,7 @@ class CronService {
 
     start() {
         console.log('⏳ Cron Service started: Checking for scheduled posts every 1 minute.');
-        
+
         // Run every minute
         this.job = cron.schedule('* * * * *', async () => {
             await this.processScheduledPosts();
@@ -22,15 +24,21 @@ class CronService {
     async processScheduledPosts() {
         try {
             const now = new Date();
-            
+
             // 1. Find posts that are 'scheduled' and due
+            // AND belong to an Active Client
             const posts = await Post.findAll({
                 where: {
                     status: 'scheduled',
                     scheduledAt: {
-                        [Op.lte]: now
+                        [Op.lte]: now // Posts due now OR in the past (catch-up)
                     }
-                }
+                },
+                include: [{
+                    model: Client,
+                    where: { isActive: true }, // Only process if client is active
+                    required: true // Inner Join (Post MUST have an active Client)
+                }]
             });
 
             if (posts.length === 0) return;
@@ -84,9 +92,9 @@ class CronService {
                     // Standard Publish (Live) - NO Scheduling params
                     response = await metaService.publishToInstagram(connection, post.content, post.mediaUrl);
                 } else {
-                   // Add other platforms here
-                   console.warn(`[Cron] Platform ${platformId} not supported yet in cron.`);
-                   continue;
+                    // Add other platforms here
+                    console.warn(`[Cron] Platform ${platformId} not supported yet in cron.`);
+                    continue;
                 }
 
                 results[platformId] = {
@@ -114,7 +122,7 @@ class CronService {
         } else {
             post.status = 'failed';
         }
-        
+
         post.results = results;
         await post.save();
         console.log(`[Cron] Finished Post ${post.id}. Status: ${post.status}`);
