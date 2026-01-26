@@ -108,28 +108,46 @@ export function AnalyticsContent() {
     const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values?.[0]?.value || 0;
 
     // Process Demographic Data for Charts
-    const demoData = insights?.insights?.find(i => i.name === 'follower_demographics')?.values?.[0]?.value || {};
+    const followerData = insights?.insights?.find(i => i.name === 'follower_demographics')?.values?.[0]?.value || {};
+    // Priority: Reached Audience (User Requested) > Engaged Audience
+    const reachedData = insights?.insights?.find(i => i.name === 'reached_audience_demographics')?.values?.[0]?.value || {};
+    const engagedData = insights?.insights?.find(i => i.name === 'engaged_audience_demographics')?.values?.[0]?.value || {};
+
+    const targetData = Object.keys(reachedData).length > 0 ? reachedData : engagedData;
+    const targetName = Object.keys(reachedData).length > 0 ? "Reached" : "Engaged";
 
     const ageData = useMemo(() => {
         const ages = ['13-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
         return ages.map(age => {
-            const m = demoData[`M.${age}`] || 0;
-            const f = demoData[`F.${age}`] || 0;
-            const u = demoData[`U.${age}`] || 0;
-            return { name: age, value: m + f + u };
+            // Followers
+            const f_m = followerData[`M.${age}`] || 0;
+            const f_f = followerData[`F.${age}`] || 0;
+            const f_u = followerData[`U.${age}`] || 0;
+
+            // Reached/Engaged
+            const t_m = targetData[`M.${age}`] || 0;
+            const t_f = targetData[`F.${age}`] || 0;
+            const t_u = targetData[`U.${age}`] || 0;
+
+            return {
+                name: age,
+                followers: f_m + f_f + f_u,
+                engaged: t_m + t_f + t_u
+            };
         });
-    }, [demoData]);
+    }, [followerData, targetData]);
 
     const genderData = useMemo(() => {
-        const m = Object.keys(demoData).filter(k => k.startsWith('M.')).reduce((sum, k) => sum + demoData[k], 0);
-        const f = Object.keys(demoData).filter(k => k.startsWith('F.')).reduce((sum, k) => sum + demoData[k], 0);
-        const u = Object.keys(demoData).filter(k => k.startsWith('U.')).reduce((sum, k) => sum + demoData[k], 0);
+        const calculateTotal = (data, prefix) => Object.keys(data).filter(k => k.startsWith(prefix)).reduce((sum, k) => sum + data[k], 0);
+
         return [
-            { name: 'Men', value: m, color: '#3b82f6' },
-            { name: 'Women', value: f, color: '#ec4899' },
-            { name: 'Unknown', value: u, color: '#94a3b8' }
+            { name: 'Men', followers: calculateTotal(followerData, 'M.'), engaged: calculateTotal(targetData, 'M.') },
+            { name: 'Women', followers: calculateTotal(followerData, 'F.'), engaged: calculateTotal(targetData, 'F.') },
+            { name: 'Unknown', followers: calculateTotal(followerData, 'U.'), engaged: calculateTotal(targetData, 'U.') }
         ];
-    }, [demoData]);
+    }, [followerData, targetData]);
+
+    const hasDemographicData = ageData.some(d => d.followers > 0 || d.engaged > 0);
 
     if (isLoading) {
         return (
@@ -141,6 +159,21 @@ export function AnalyticsContent() {
 
     return (
         <div className="space-y-8 bg-[#f8fafc] min-h-screen p-4 md:p-8 text-slate-900 rounded-3xl">
+            {/* Error / Warning Banner from Backend */}
+            {(insights?.errors && Object.keys(insights.errors).length > 0) && (
+                <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-xl flex items-start gap-3 text-sm">
+                    <FaTriangleExclamation className="mt-0.5 shrink-0" />
+                    <div>
+                        <p className="font-bold">Heads up: Some insights couldn't be loaded.</p>
+                        <ul className="list-disc list-inside mt-1 space-y-0.5 text-xs text-orange-700">
+                            {Object.entries(insights.errors).map(([key, msg]) => (
+                                <li key={key}><span className="font-mono">{key}</span>: {msg}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
+
             {/* Reports Header */}
             <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
@@ -230,40 +263,54 @@ export function AnalyticsContent() {
                     {/* Age Group Chart */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h3 className="text-center text-sm font-bold text-slate-700 mb-8 font-serif">Engaged Audience vs Followers by Age Group</h3>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={ageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                    <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {hasDemographicData ? (
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={ageData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                        <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <Bar dataKey="followers" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={20} name="Followers" />
+                                        <Bar dataKey="engaged" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} name="Engaged" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-[300px] w-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                                <FaUserGroup className="text-3xl mb-2 opacity-50" />
+                                <span className="font-bold text-sm">Not enough data yet</span>
+                                <span className="text-[10px] mt-1 max-w-[200px] text-center">Requires 100+ followers or engaged users in the last 30 days.</span>
+                            </div>
+                        )}
                         <div className="flex flex-col items-center justify-center mt-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                            <span className="[writing-mode:vertical-lr] rotate-180 -translate-x-12 absolute">People</span>
+                            {!hasDemographicData && <span className="opacity-0">.</span>}
                         </div>
                     </div>
 
                     {/* Gender Chart */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <h3 className="text-center text-sm font-bold text-slate-700 mb-8 font-serif">Engaged Audience vs Followers by Gender</h3>
-                        <div className="h-[300px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={genderData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
-                                    <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
-                                        {genderData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+                        {hasDemographicData ? (
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={genderData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                        <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                        <Bar dataKey="followers" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={40} name="Followers" />
+                                        <Bar dataKey="engaged" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} name="Engaged" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        ) : (
+                            <div className="h-[300px] w-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                                <FaUsers className="text-3xl mb-2 opacity-50" />
+                                <span className="font-bold text-sm">Not enough data yet</span>
+                                <span className="text-[10px] mt-1 max-w-[200px] text-center">Requires 100+ followers or engaged users in the last 30 days.</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
