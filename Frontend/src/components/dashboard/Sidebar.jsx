@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { FaBuilding, FaLayerGroup, FaGear, FaArrowRightFromBracket, FaChevronDown, FaXmark } from 'react-icons/fa6';
+import { FaBuilding, FaLayerGroup, FaGear, FaArrowRightFromBracket, FaChevronDown, FaXmark, FaCircleQuestion, FaCommentDots, FaBookOpen } from 'react-icons/fa6';
 import { clsx } from 'clsx';
-import { useState, useEffect } from 'react';
 
 export function Sidebar({ isOpen, onClose }) {
     const location = useLocation();
@@ -64,87 +63,88 @@ export function Sidebar({ isOpen, onClose }) {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
-                <NavItem path="/clients" label="My Clients" icon={<FaBuilding />} />
-
-                {/* Dashboard Dropdown */}
+            <nav className="flex-1 px-3 mt-4 flex flex-col overflow-y-auto">
                 <div className="space-y-1">
-                    <button
-                        onClick={() => setIsDashboardOpen(!isDashboardOpen)}
-                        className={clsx(
-                            "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                            location.pathname === '/dashboard'
-                                ? "bg-blue-50 text-blue-600 shadow-sm"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                        )}
-                    >
-                        <div className="flex items-center space-x-3">
-                            <span className="text-lg"><FaLayerGroup /></span>
-                            <span>Dashboard</span>
-                        </div>
-                        <FaChevronDown className={clsx("w-3 h-3 transition-transform", isDashboardOpen && "rotate-180")} />
-                    </button>
+                    <NavItem path="/clients" label="My Clients" icon={<FaBuilding />} />
 
-                    {isDashboardOpen && (
-                        <div className="pl-11 space-y-1 animate-in slide-in-from-top-2 duration-200">
-                            <Link
-                                to="/dashboard?view=overview"
-                                className={clsx(
-                                    "block px-3 py-2 rounded-md text-sm transition-colors",
-                                    currentView === 'overview' && location.pathname === '/dashboard'
-                                        ? "text-blue-600 font-semibold bg-blue-50/50"
-                                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                Overview
-                            </Link>
-                            <Link
-                                to="/dashboard?view=ai-agent"
-                                className={clsx(
-                                    "block px-3 py-2 rounded-md text-sm transition-colors",
-                                    currentView === 'ai-agent'
-                                        ? "text-blue-600 font-semibold bg-blue-50/50"
-                                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                AI Agent
-                            </Link>
-                            <Link
-                                to="/dashboard?view=analytics"
-                                className={clsx(
-                                    "block px-3 py-2 rounded-md text-sm transition-colors",
-                                    currentView === 'analytics'
-                                        ? "text-blue-600 font-semibold bg-blue-50/50"
-                                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                View Analytics
-                            </Link>
-                            <Link
-                                to="/dashboard?view=create-post"
-                                className={clsx(
-                                    "block px-3 py-2 rounded-md text-sm transition-colors",
-                                    currentView === 'create-post'
-                                        ? "text-blue-600 font-semibold bg-blue-50/50"
-                                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                Create Post
-                            </Link>
-                            <Link
-                                to="/dashboard?view=overview"
-                                className={clsx(
-                                    "block px-3 py-2 rounded-md text-sm transition-colors",
-                                    "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                                )}
-                            >
-                                Connect Platform
-                            </Link>
-                        </div>
-                    )}
+                    {/* Dashboard Dropdown */}
+                    <div className="space-y-1">
+                        <button
+                            onClick={() => setIsDashboardOpen(!isDashboardOpen)}
+                            className={clsx(
+                                "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                                location.pathname === '/dashboard'
+                                    ? "bg-blue-50 text-blue-600 shadow-sm"
+                                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                            )}
+                        >
+                            <div className="flex items-center space-x-3">
+                                <span className="text-lg"><FaLayerGroup /></span>
+                                <span>Dashboard</span>
+                            </div>
+                            <FaChevronDown className={clsx("w-3 h-3 transition-transform", isDashboardOpen && "rotate-180")} />
+                        </button>
+
+                        {isDashboardOpen && (
+                            <div className="pl-11 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                <Link
+                                    to="/dashboard?view=overview"
+                                    className={clsx(
+                                        "block px-3 py-2 rounded-md text-sm transition-colors",
+                                        currentView === 'overview' && location.pathname === '/dashboard'
+                                            ? "text-blue-600 font-semibold bg-blue-50/50"
+                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                >
+                                    Overview
+                                </Link>
+                                <Link
+                                    to="/dashboard?view=ai-agent"
+                                    className={clsx(
+                                        "block px-3 py-2 rounded-md text-sm transition-colors",
+                                        currentView === 'ai-agent'
+                                            ? "text-blue-600 font-semibold bg-blue-50/50"
+                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                >
+                                    AI Agent
+                                </Link>
+                                <Link
+                                    to="/dashboard?view=analytics"
+                                    className={clsx(
+                                        "block px-3 py-2 rounded-md text-sm transition-colors",
+                                        currentView === 'analytics'
+                                            ? "text-blue-600 font-semibold bg-blue-50/50"
+                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                >
+                                    View Analytics
+                                </Link>
+                                <Link
+                                    to="/dashboard?view=create-post"
+                                    className={clsx(
+                                        "block px-3 py-2 rounded-md text-sm transition-colors",
+                                        currentView === 'create-post'
+                                            ? "text-blue-600 font-semibold bg-blue-50/50"
+                                            : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                >
+                                    Create Post
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+
+                    <NavItem path="/how-it-works" label="How It Works" icon={<FaBookOpen />} />
                 </div>
 
-                <NavItem path="/settings" label="Settings" icon={<FaGear />} />
+                {/* Bottom Section: Settings, Help, Feedback */}
+                <div className="mt-auto space-y-1 pt-4 pb-4">
+                    <div className="w-full h-px bg-gray-100 mb-2"></div>
+                    <NavItem path="/settings" label="Settings" icon={<FaGear />} />
+                    <NavItem path="/help" label="Help Center" icon={<FaCircleQuestion />} />
+                    <NavItem path="/feedback" label="Feedback" icon={<FaCommentDots />} />
+                </div>
             </nav>
 
             {/* User Profile / Logout */}

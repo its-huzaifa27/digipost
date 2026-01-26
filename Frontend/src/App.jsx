@@ -10,6 +10,9 @@ import { CreatePostPage } from './pages/CreatePost';
 import { AIAgent } from './pages/AIAgent';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
+import { Help } from './pages/Help';
+import { Feedback } from './pages/Feedback';
+import { HowItWorks } from './pages/HowItWorks';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Header } from './components/Header';
 
@@ -40,6 +43,9 @@ function App() {
         <Route path="/ai-agent" element={<AIAgent />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/feedback" element={<Feedback />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
       </Route>
     </Routes>
   )
