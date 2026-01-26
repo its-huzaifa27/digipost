@@ -74,15 +74,36 @@ export function AnalyticsContent() {
     };
 
     const viewsData = insights?.insights?.find(i => i.name === 'views');
-    const totalViews = viewsData?.values?.[0]?.value || 0;
+    // Total Views Logic
+    const fbImpressions = insights?.insights?.find(i => i.name === 'page_impressions');
+    const totalViews = activeTab === 'instagram'
+        ? (viewsData?.values?.[0]?.value || 0)
+        : (fbImpressions?.values?.[0]?.value || 0);
 
-    // Extract breakdown if available
-    const breakdown = viewsData?.values?.[0]?.breakdowns?.[0]?.results || [];
-    const followersViews = breakdown.find(b => b.dimension_values?.[0] === 'follower')?.value || 0;
-    const nonFollowersViews = breakdown.find(b => b.dimension_values?.[0] === 'non_follower')?.value || 0;
+    const followerCount = insights?.profile?.followers_count || 0;
 
-    const followerPercentage = totalViews > 0 ? (followersViews / totalViews * 100).toFixed(1) : 0;
-    const nonFollowerPercentage = totalViews > 0 ? (nonFollowersViews / totalViews * 100).toFixed(1) : 100;
+    // --- AUDIENCE SPLIT LOGIC ---
+    let followerPercentage = 0;
+    let nonFollowerPercentage = 0;
+    let isRealData = false;
+
+    if (insights?.audienceSplit && (insights.audienceSplit.fans > 0 || insights.audienceSplit.nonFans > 0)) {
+        // CASE 1: REAL DATA (Facebook)
+        isRealData = true;
+        const total = insights.audienceSplit.fans + insights.audienceSplit.nonFans;
+        followerPercentage = Math.round((insights.audienceSplit.fans / total) * 100);
+        nonFollowerPercentage = Math.round((insights.audienceSplit.nonFans / total) * 100);
+    } else {
+        // CASE 2: ESTIMATION (Instagram)
+        const reach = insights?.insights?.find(i => i.name === 'reach' || i.name === 'page_impressions_unique')?.values?.[0]?.value || 0;
+
+        let nonFollowerReach = Math.max(0, reach - followerCount);
+        let followerReach = Math.min(reach, followerCount);
+
+        const totalReachCalc = nonFollowerReach + followerReach;
+        followerPercentage = totalReachCalc > 0 ? Math.round((followerReach / totalReachCalc) * 100) : 0;
+        nonFollowerPercentage = totalReachCalc > 0 ? Math.round((nonFollowerReach / totalReachCalc) * 100) : 0;
+    }
 
     const reachValue = insights?.insights?.find(i => i.name === 'reach')?.values?.[0]?.value || 0;
 
@@ -349,7 +370,12 @@ export function AnalyticsContent() {
                             {/* Right Side: Breakdown Chart Lookalike */}
                             <div className="space-y-8 border-l border-slate-100 pl-0 lg:pl-12">
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-semibold text-slate-400">By content type</h3>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-sm font-semibold text-slate-400">Audience Segment</h3>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRealData ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                            {isRealData ? 'REAL DATA' : 'ESTIMATED'}
+                                        </span>
+                                    </div>
                                     <div className="flex gap-2">
                                         {['All', 'Followers', 'Non-followers'].map(label => (
                                             <button
@@ -366,20 +392,37 @@ export function AnalyticsContent() {
                                 <div className="space-y-6">
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-slate-600 font-medium">Posts</span>
-                                            <span className="text-slate-400 font-bold">100.0%</span>
+                                            <span className="text-slate-600 font-medium">{contentTypeFilter === 'All' ? 'Audience Split' : contentTypeFilter}</span>
+                                            <span className="text-slate-400 font-bold">
+                                                {contentTypeFilter === 'All'
+                                                    ? `${nonFollowerPercentage}% from Non-followers`
+                                                    : contentTypeFilter === 'Followers'
+                                                        ? '100% from Followers'
+                                                        : '100% from Non-followers'}
+                                            </span>
                                         </div>
-                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: '100%' }}></div>
+                                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex transition-all duration-500">
+                                            {(contentTypeFilter === 'All' || contentTypeFilter === 'Followers') && (
+                                                <div
+                                                    className="h-full bg-pink-500 transition-all duration-500"
+                                                    style={{ width: contentTypeFilter === 'All' ? `${followerPercentage}%` : '100%' }}
+                                                ></div>
+                                            )}
+                                            {(contentTypeFilter === 'All' || contentTypeFilter === 'Non-followers') && (
+                                                <div
+                                                    className="h-full bg-indigo-500 transition-all duration-500"
+                                                    style={{ width: contentTypeFilter === 'All' ? `${nonFollowerPercentage}%` : '100%' }}
+                                                ></div>
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-6 pt-4">
-                                        <div className="flex items-center gap-2 text-xs">
+                                        <div className={`flex items-center gap-2 text-xs transition-opacity ${contentTypeFilter === 'Non-followers' ? 'opacity-30' : 'opacity-100'}`}>
                                             <div className="w-2 h-2 rounded-full bg-pink-500"></div>
                                             <span className="text-slate-500 font-medium">Followers</span>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs">
+                                        <div className={`flex items-center gap-2 text-xs transition-opacity ${contentTypeFilter === 'Followers' ? 'opacity-30' : 'opacity-100'}`}>
                                             <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
                                             <span className="text-slate-500 font-medium">Non-followers</span>
                                         </div>

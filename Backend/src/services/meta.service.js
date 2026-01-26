@@ -601,8 +601,8 @@ class MetaService {
                 const insightsResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/insights`, {
                     params: {
                         // Updated stable metrics for v21.0
-                        // Added: page_fan_adds (New Likes), page_post_engagements
-                        metric: 'page_impressions_unique,page_daily_active_users,page_impressions,page_fan_adds,page_post_engagements',
+                        // Added: page_fan_adds (New Likes), page_post_engagements, page_impressions_by_is_fan_unique (Audience Split)
+                        metric: 'page_impressions_unique,page_daily_active_users,page_impressions,page_fan_adds,page_post_engagements,page_impressions_by_is_fan_unique',
                         period: 'day',
                         access_token: connection.accessToken
                     }
@@ -626,9 +626,26 @@ class MetaService {
                     console.log(`[FB_INSIGHTS] Fallback fetch success`);
                 } catch (fallbackErr) {
                     console.error(`[FB_INSIGHTS] Fallback fetch failed:`, fallbackErr.response?.data || fallbackErr.message);
-                    // We allow insights to be empty if both fail, but log the error
-                    // throw new Error(`Facebook Insights Error: ${insightsErr.response?.data?.error?.message || insightsErr.message}`);
                 }
+            }
+
+            // --- AUDIENCE SPLIT PROCESSING (Real Data) ---
+            let audienceSplit = { fans: 0, nonFans: 0 };
+            try {
+                const splitMetric = insightsData.find(m => m.name === 'page_impressions_by_is_fan_unique');
+                if (splitMetric && splitMetric.values && splitMetric.values[0] && splitMetric.values[0].value) {
+                    const val = splitMetric.values[0].value;
+                    // FB API returns { "0": <non_fans>, "1": <fans> } (Keys are strings)
+                    // Sometimes keys might be different locales, but standard is 0/1 for boolean is_fan behavior in newer APIs? 
+                    // Actually, documented behavior is key "0" (No) and "1" (Yes).
+                    audienceSplit = {
+                        fans: val['1'] || 0,
+                        nonFans: val['0'] || 0
+                    };
+                    console.log('[FB_INSIGHTS] Real Audience Split:', audienceSplit);
+                }
+            } catch (splitErr) {
+                console.warn('[FB_INSIGHTS] Failed to process audience split:', splitErr.message);
             }
 
             // 3. Fetch Top Media (Page Posts)
@@ -663,10 +680,23 @@ class MetaService {
                 // Don't throw, just return empty media
             }
 
+            // --- PUBLISHING SUMMARY ---
+            // Note: 'topMedia' for FB is currently simplistic (IMAGE or TEXT).
+            // A more robust implementation would need 'status_type' from FB API to detect VIDEO/etc.
+            // For now, we map existing detected types.
+            const publishingSummary = {
+                total: topMedia.length,
+                videos: topMedia.filter(m => m.media_type === 'VIDEO').length,
+                photos: topMedia.filter(m => m.media_type === 'IMAGE').length,
+                carousels: topMedia.filter(m => m.media_type === 'CAROUSEL_ALBUM').length
+            };
+
             return {
                 profile: profileData,
                 insights: insightsData,
-                topMedia: topMedia
+                topMedia: topMedia,
+                publishingSummary: publishingSummary,
+                audienceSplit: audienceSplit
             };
 
         } catch (error) {
