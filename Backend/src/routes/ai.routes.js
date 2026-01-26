@@ -19,6 +19,18 @@ router.post('/generate', authenticateToken, async (req, res) => {
     }
 });
 
+router.post('/refine-image-prompt', authenticateToken, async (req, res) => {
+    const { topic } = req.body;
+    if (!topic) return res.status(400).json({ error: 'Topic is required' });
+
+    try {
+        const refinedPrompt = await aiService.refineImagePrompt(topic);
+        res.json({ prompt: refinedPrompt });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/generate-image', authenticateToken, async (req, res) => {
     const { prompt } = req.body;
 

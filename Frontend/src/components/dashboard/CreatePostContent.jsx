@@ -167,34 +167,39 @@ export function CreatePostContent() {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
             const token = localStorage.getItem('token');
 
-            const response = await fetch(`${API_URL}/api/ai/generate-image`, {
+            // 1. Refine the prompt using our AI Service
+            // This turns "blue car" into "Cinematic shot of a sapphire blue sports car..."
+            const response = await fetch(`${API_URL}/api/ai/refine-image-prompt`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ prompt: aiPrompt })
+                body: JSON.stringify({ topic: aiPrompt })
             });
 
             if (response.ok) {
                 const data = await response.json();
-                // Data format: { image: "data:image/png;base64,..." }
+                const refinedPrompt = data.prompt;
 
-                // Convert Base64 to File object
-                const res = await fetch(data.image);
-                const blob = await res.blob();
-                const file = new File([blob], "ai-generated-image.png", { type: "image/png" });
+                // 2. UX: Copy to clipboard so user can just paste it
+                try {
+                    await navigator.clipboard.writeText(refinedPrompt);
+                    alert("✨ Prompt copied! Please READ the prompt before pasting it into Google Gemini.");
+                } catch (err) {
+                    console.warn("Clipboard write failed", err);
+                }
 
-                // Append to existing media
-                setMedia(prev => Array.isArray(prev) ? [...prev, file] : [file]);
-                // Switch to manual to see the uploaded image
-                setCreationMode('manual');
+                // 3. Redirect to Google Gemini
+                const targetUrl = `https://gemini.google.com/u/1/app`;
+                window.open(targetUrl, '_blank');
+
             } else {
-                throw new Error("Failed to generate image");
+                throw new Error("Failed to refine prompt");
             }
         } catch (error) {
-            console.error("AI Image Generation Error:", error);
-            alert("Failed to generate image. Please try again.");
+            console.error("AI Prompt Refine Error:", error);
+            alert("Failed to prepare image generation. Please try again.");
         } finally {
             setIsGeneratingImage(false);
         }

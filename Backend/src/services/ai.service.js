@@ -72,6 +72,39 @@ class AIService {
         }
     }
 
+    /**
+     * Refines a simple user topic into a detailed image generation prompt.
+     */
+    async refineImagePrompt(topic) {
+        if (!this.model) throw new Error("AI Service not configured.");
+
+        console.log(`🎨 Refining image prompt for: "${topic}"`);
+
+        try {
+            const prompt = `
+            You are an expert AI Art Prompt Engineer.
+            Take the following user topic and convert it into a highly detailed, descriptive image generation prompt suitable for high-quality AI image generators like Midjourney or Stable Diffusion.
+            
+            User Topic: "${topic}"
+
+            Instructions:
+            - Focus on visual details: lighting, composition, style (e.g., cinematic, photorealistic, digital art, etc.), and mood.
+            - Keep it under 50 words but densely packed with visual keywords.
+            - Output ONLY the raw prompt text. No "Here is the prompt:" prefixes.
+            `;
+
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            const refined = response.text().trim();
+
+            // Ensure it starts with the user's requested trigger phrase
+            return `generate an image of ${refined}`;
+        } catch (error) {
+            console.error("Prompt Refinement Error:", error);
+            throw new Error("Failed to refine prompt.");
+        }
+    }
+
     async generateImage(prompt) {
         if (!this.apiKey) {
             throw new Error("AI Service is not configured. Missing API Key.");
