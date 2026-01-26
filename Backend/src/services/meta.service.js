@@ -455,6 +455,14 @@ class MetaService {
 
                 const mediaList = mediaResponse.data.data || [];
 
+                // --- PUBLISHING SUMMARY ---
+                const publishingSummary = {
+                    total: mediaList.length,
+                    videos: mediaList.filter(m => m.media_type === 'VIDEO' || m.media_product_type === 'REELS').length,
+                    photos: mediaList.filter(m => m.media_type === 'IMAGE').length,
+                    carousels: mediaList.filter(m => m.media_type === 'CAROUSEL_ALBUM').length
+                };
+
                 topMedia = await Promise.all(mediaList.map(async (media) => {
                     let views = 0;
                     let saved = 0;
@@ -545,11 +553,12 @@ class MetaService {
                     };
                 }));
 
+                return { profile: profileData, insights: insightsData, topMedia: topMedia, publishingSummary: publishingSummary };
+
             } catch (mediaErr) {
                 console.error('[IG_INSIGHTS] Fatal Media List Error:', mediaErr.message);
+                return { profile: profileData, insights: insightsData, topMedia: topMedia, publishingSummary: { total: 0, videos: 0, photos: 0, carousels: 0 } };
             }
-
-            return { profile: profileData, insights: insightsData, topMedia: topMedia };
 
         } catch (error) {
             console.error('[IG_INSIGHTS] Critical Failure:', error.message);
