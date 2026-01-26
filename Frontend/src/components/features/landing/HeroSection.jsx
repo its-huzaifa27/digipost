@@ -8,7 +8,7 @@ export function HeroSection() {
             {/* Background Image with Overlay */}
             <div
                 className="absolute inset-0 bg-cover bg-no-repeat z-0 transition-transfo duration1000 "
-                style={{ backgroundImage: "url('/images/mainimg/hero1.png')" }}
+                style={{ backgroundImage: "url('/images/mainimg/hero3.png')" }}
             >
                 {/* <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-black/10 to-black/10 "></div> */}
             </div>

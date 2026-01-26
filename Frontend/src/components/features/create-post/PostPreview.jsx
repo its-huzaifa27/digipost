@@ -67,12 +67,12 @@ export function PostPreview({ caption, hashtags, media, user, clientName }) {
                 >
                     <div className="flex items-center justify-center gap-2"><FaFacebookF /> <span className="hidden sm:inline">Facebook</span></div>
                 </button>
-                <button
+                {/* <button
                     onClick={() => setActiveTab('linkedin')}
                     className={clsx("flex-1 py-3 text-sm font-medium transition-all border-b-2", activeTab === 'linkedin' ? "border-blue-700 text-blue-700 bg-blue-50/50" : "border-transparent text-gray-500")}
                 >
                     <div className="flex items-center justify-center gap-2"><FaLinkedinIn /> <span className="hidden sm:inline">LinkedIn</span></div>
-                </button>
+                </button> */}
             </div>
 
             {/* Preview Area */}

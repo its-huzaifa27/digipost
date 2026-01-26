@@ -19,8 +19,8 @@ export function ConnectedPlatformsWidget({ client }) {
         { id: 'twitter', label: 'Twitter', icon: <FaTwitter />, color: 'bg-black text-white' },
         { id: 'linkedin', label: 'LinkedIn', icon: <FaLinkedinIn />, color: 'bg-blue-700 text-white' },
         { id: 'whatsapp', label: 'WhatsApp', icon: <FaWhatsapp />, color: 'bg-green-500 text-white' },
-        { id: 'pinterest', label: 'Pinterest', icon: <FaPinterest />, color: 'bg-red-600 text-white' },
-        { id: 'tiktok', label: 'TikTok', icon: <FaTiktok />, color: 'bg-black text-white' },
+        // { id: 'pinterest', label: 'Pinterest', icon: <FaPinterest />, color: 'bg-red-600 text-white' },
+        // { id: 'tiktok', label: 'TikTok', icon: <FaTiktok />, color: 'bg-black text-white' },
     ];
 
     const fetchConnections = async () => {
@@ -121,7 +121,7 @@ export function ConnectedPlatformsWidget({ client }) {
     return (
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex flex-col h-full">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Connected Platforms</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 flex-1">
                 {platformIcons.map((p) => {
                     const isConnected = connectedPlatforms.has(p.id) || client.platforms?.[p.id]?.connected;
                     return (

@@ -13,8 +13,8 @@ export function TopBar({ clients, selectedClientId, onSelectClient }) {
         { id: 'twitter', icon: <FaTwitter />, color: 'text-black' },
         { id: 'linkedin', icon: <FaLinkedinIn />, color: 'text-blue-700' },
         { id: 'whatsapp', icon: <FaWhatsapp />, color: 'text-green-500' },
-        { id: 'pinterest', icon: <FaPinterest />, color: 'text-red-600' },
-        { id: 'tiktok', icon: <FaTiktok />, color: 'text-black' },
+        // { id: 'pinterest', icon: <FaPinterest />, color: 'text-red-600' },
+        // { id: 'tiktok', icon: <FaTiktok />, color: 'text-black' },
     ];
 
     return (

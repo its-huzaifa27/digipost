@@ -11,12 +11,15 @@ export const connectPlatform = (req, res) => {
             const INSTAGRAM_CLIENT_ID = process.env.INSTAGRAM_CLIENT_ID;
             if (!INSTAGRAM_CLIENT_ID) return res.status(500).json({ error: 'Server config missing' });
             url = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=user_profile,user_media&response_type=code`;
+            // url = `https://api.instagram.com/oauth/authorize?client_id=${INSTAGRAM_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=user_profile,user_media&response_type=code&force_authentication=1`;
+            
             break;
             
         case 'facebook':
             const FACEBOOK_CLIENT_ID = process.env.FACEBOOK_CLIENT_ID;
             if (!FACEBOOK_CLIENT_ID) return res.status(500).json({ error: 'Server config missing' });
             url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=pages_manage_posts,publish_video,pages_read_engagement&response_type=code`;
+            // url = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=pages_manage_posts,publish_video,pages_read_engagement&response_type=code&auth_type=reauthenticate`;
             break;
             
         case 'linkedin':
