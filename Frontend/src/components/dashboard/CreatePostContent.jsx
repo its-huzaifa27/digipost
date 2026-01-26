@@ -6,6 +6,7 @@ import { clsx } from 'clsx';
 import { MediaUploader } from "../features/create-post/MediaUploader";
 import { PostPreview } from "../features/create-post/PostPreview";
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen } from 'react-icons/fa6';
+import { Modal } from "../ui/Modal";
 
 export function CreatePostContent() {
     const [creationMode, setCreationMode] = useState("manual"); // 'manual' | 'ai'
@@ -22,6 +23,16 @@ export function CreatePostContent() {
     const [socialAccounts, setSocialAccounts] = useState([]);
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
     const [selectedPlatforms, setSelectedPlatforms] = useState([]);
+
+    // Image Gen Modal State
+    const [showImageModal, setShowImageModal] = useState(false);
+    const [refinedPrompt, setRefinedPrompt] = useState("");
+
+    const handleOpenGemini = () => {
+        const targetUrl = `https://gemini.google.com/u/1/app?pageId=none`;
+        window.open(targetUrl, '_blank');
+        setShowImageModal(false);
+    };
 
     // Fetch Connected Accounts from Backend
     useEffect(() => {
@@ -180,19 +191,18 @@ export function CreatePostContent() {
 
             if (response.ok) {
                 const data = await response.json();
-                const refinedPrompt = data.prompt;
+                const newPrompt = data.prompt;
+                setRefinedPrompt(newPrompt);
 
                 // 2. UX: Copy to clipboard so user can just paste it
                 try {
-                    await navigator.clipboard.writeText(refinedPrompt);
-                    alert("✨ Prompt copied! Please READ the prompt before pasting it into Google Gemini.");
+                    await navigator.clipboard.writeText(newPrompt);
                 } catch (err) {
                     console.warn("Clipboard write failed", err);
                 }
 
-                // 3. Redirect to Google Gemini
-                const targetUrl = `https://gemini.google.com/u/1/app`;
-                window.open(targetUrl, '_blank');
+                // 3. Show Modal instead of Alert
+                setShowImageModal(true);
 
             } else {
                 throw new Error("Failed to refine prompt");
@@ -294,6 +304,42 @@ export function CreatePostContent() {
 
     return (
         <div className="w-full mx-auto">
+            {/* Modal for Image Generation */}
+            <Modal
+                isOpen={showImageModal}
+                onClose={() => setShowImageModal(false)}
+                title="✨ Ready to Create Magic?"
+                footer={
+                    <>
+                        <Button variant="outline" onClick={() => setShowImageModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 hover:from-blue-700 hover:to-purple-700 shadow-lg shadow-purple-200"
+                            onClick={handleOpenGemini}
+                        >
+                            Open Google Gemini 🚀
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <div className="bg-green-50 text-green-800 p-3 rounded-lg flex items-center gap-2 text-sm font-medium border border-green-200">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                        Prompt copied to clipboard!
+                    </div>
+                    <p className="text-sm text-slate-600">
+                        We've crafted a professional prompt for you. Just paste it into Gemini to generate your image.
+                    </p>
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                        <p className="text-xs font-mono text-slate-500 uppercase mb-1">Your Prompt:</p>
+                        <p className="text-sm text-slate-800 font-medium italic line-clamp-4">
+                            "{refinedPrompt}"
+                        </p>
+                    </div>
+                </div>
+            </Modal>
+
             <div className="p-4 md:p-8 space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div className="flex flex-col gap-1">
