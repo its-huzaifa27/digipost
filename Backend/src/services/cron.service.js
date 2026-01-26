@@ -46,6 +46,13 @@ class CronService {
             console.log(`[Cron] Found ${posts.length} scheduled posts to publish.`);
 
             for (const post of posts) {
+                // Double Check: Ensure client is STILL active (race condition or query join safety)
+                const client = await Client.findOne({ where: { id: post.clientId } });
+                if (!client || !client.isActive) {
+                    console.warn(`[Cron] SKIPPING Post ${post.id} because Client ${client?.name || 'Unknown'} is SUSPENDED/Inactive.`);
+                    continue;
+                }
+
                 await this.publishPost(post);
             }
 

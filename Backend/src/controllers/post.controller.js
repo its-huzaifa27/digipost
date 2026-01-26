@@ -5,6 +5,7 @@ import Post from '../models/post.model.js';
 import PlatformConnection from '../models/platformConnection.model.js';
 import metaService from '../services/meta.service.js';
 import { supabase } from '../config/supabase.js';
+import Client from '../models/client.model.js';
 
 // Configure Multer Storage
 const storage = multer.diskStorage({
@@ -36,6 +37,15 @@ export const createPost = async (req, res) => {
 
     if (!clientId) {
         return res.status(400).json({ error: "clientId is required" });
+    }
+
+    // Check Client Suspension Status
+    const client = await Client.findOne({ where: { id: clientId, userId } });
+    if (!client) {
+        return res.status(404).json({ error: "Client not found." });
+    }
+    if (!client.isActive) {
+        return res.status(403).json({ error: "Service Suspended: This client cannot post." });
     }
 
     // IG requires image if it's the only platform, but logic is handled per platform below
