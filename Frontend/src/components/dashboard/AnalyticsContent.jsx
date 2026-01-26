@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaInstagram, FaFacebook, FaChartLine, FaUsers, FaEye, FaSpinner, FaTriangleExclamation, FaThumbsUp, FaUserGroup } from 'react-icons/fa6';
+import { FaInstagram, FaFacebook, FaChartLine, FaUsers, FaEye, FaSpinner, FaTriangleExclamation, FaThumbsUp, FaUserGroup, FaArrowUpRightFromSquare } from 'react-icons/fa6';
 
 export function AnalyticsContent() {
     const [activeTab, setActiveTab] = useState('instagram'); // 'instagram' | 'facebook'
@@ -278,44 +278,128 @@ export function AnalyticsContent() {
                         </div>
                     </div>
 
-                    {/* Top Content Section */}
+                    {/* Recent Posts Section */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-bold">Top content based on views</h2>
-                            <button className="text-indigo-400 text-sm font-semibold hover:underline">See all</button>
+                            <div>
+                                <h2 className="text-xl font-bold">Recent posts</h2>
+                                <p className="text-gray-400 text-sm">Review your recent posts published during the selected time period.</p>
+                            </div>
+                            <button className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors">Show all posts</button>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto pb-4 scrollbar-hide">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {isFetchingInsights ? (
-                                Array(5).fill(0).map((_, i) => (
-                                    <div key={i} className="aspect-[3/4] bg-[#1c1c1e] rounded-2xl animate-pulse"></div>
+                                Array(3).fill(0).map((_, i) => (
+                                    <div key={i} className="bg-[#1c1c1e] rounded-3xl p-5 border border-gray-800 h-[500px] animate-pulse"></div>
                                 ))
                             ) : (
-                                insights?.topMedia?.map((media, idx) => (
-                                    <div key={media.id} className="relative aspect-[3/4] bg-[#1c1c1e] rounded-2xl overflow-hidden group hover:ring-2 ring-indigo-500 transition-all cursor-pointer">
-                                        <img
-                                            src={media.media_type === 'VIDEO' ? media.thumbnail_url : media.media_url}
-                                            alt={media.caption}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                        />
-                                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-lg border border-white/10 flex items-center gap-2">
-                                            <div className="flex items-center gap-1">
-                                                <FaThumbsUp className="text-pink-500 text-xs" />
-                                                <span className="text-xs font-bold">{media.like_count || 0}</span>
+                                insights?.topMedia?.map((media) => {
+                                    // Calculate Total Engagements
+                                    const totalEngagements = (media.like_count || 0) + (media.comments_count || 0) + (media.saved || 0); // Shares not available yet
+
+                                    return (
+                                        <div key={media.id} className="bg-[#1c1c1e] rounded-3xl p-5 border border-gray-800 flex flex-col h-full hover:ring-1 ring-gray-700 transition-all">
+                                            {/* Media Thumbnail */}
+                                            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black mb-4 group">
+                                                {media.media_type === 'VIDEO' || media.media_product_type === 'REELS' ? (
+                                                    <div className="relative w-full h-full">
+                                                        <img
+                                                            src={media.thumbnail_url || media.media_url}
+                                                            alt="Video thumbnail"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
+                                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                                                                <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-10 border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="absolute bottom-2 right-2 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-bold">REEL</div>
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={media.media_url}
+                                                        alt={media.caption}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                )}
                                             </div>
-                                            <div className="w-px h-3 bg-gray-700"></div>
-                                            <div className="flex items-center gap-1">
-                                                <FaEye className="text-blue-500 text-xs" />
-                                                <span className="text-xs font-bold">{media.views.toLocaleString()}</span>
+
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden shrink-0">
+                                                        {insights?.profile?.profile_picture_url ? (
+                                                            <img src={insights.profile.profile_picture_url} alt="Profile" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                                <FaUsers />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-bold text-sm leading-tight">{insights?.profile?.name || 'Unknown User'}</h3>
+                                                        <p className="text-xs text-gray-500">
+                                                            {new Date(media.timestamp).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                            <span className="mx-1">•</span>
+                                                            {new Date(media.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <a
+                                                    href={media.permalink || '#'}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-gray-500 hover:text-white transition-colors"
+                                                >
+                                                    <FaArrowUpRightFromSquare className="text-sm" />
+                                                </a>
+                                            </div>
+
+                                            {/* Caption */}
+                                            <div className="mb-6 grow">
+                                                <p className="text-sm text-gray-300 line-clamp-3 leading-relaxed">
+                                                    {media.caption || 'No caption provided.'}
+                                                </p>
+                                            </div>
+
+                                            {/* Stats */}
+                                            <div className="mt-auto space-y-3">
+                                                <div className="flex justify-between items-center pb-2 border-b border-gray-800">
+                                                    <span className="text-sm font-medium text-gray-400">Total Engagements</span>
+                                                    <span className="text-lg font-bold">{totalEngagements.toLocaleString()}</span>
+                                                </div>
+
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex justify-between items-center group cursor-pointer">
+                                                        <span className="text-gray-400 underline decoration-gray-700 group-hover:text-white transition-colors">Likes</span>
+                                                        <span className="font-medium text-gray-200">{(media.like_count || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center group cursor-pointer">
+                                                        <span className="text-gray-400 underline decoration-gray-700 group-hover:text-white transition-colors">Comments</span>
+                                                        <span className="font-medium text-gray-200">{(media.comments_count || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center group cursor-pointer">
+                                                        <span className="text-gray-400 underline decoration-gray-700 group-hover:text-white transition-colors">Shares</span>
+                                                        <span className="font-medium text-gray-200">0</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center group cursor-pointer">
+                                                        <span className="text-gray-400 underline decoration-gray-700 group-hover:text-white transition-colors">Saves</span>
+                                                        <span className="font-medium text-gray-200">{(media.saved || 0).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center group cursor-pointer">
+                                                        <span className="text-gray-400 underline decoration-gray-700 group-hover:text-white transition-colors">Views</span>
+                                                        <span className="font-medium text-gray-200">{(media.views || 0).toLocaleString()}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    );
+                                })
                             )}
                             {(!isFetchingInsights && (!insights?.topMedia || insights.topMedia.length === 0)) && (
                                 <div className="col-span-full h-48 flex items-center justify-center text-gray-500 bg-[#1c1c1e] rounded-2xl border border-dashed border-gray-800">
-                                    No content found
+                                    No posts found for this period.
                                 </div>
                             )}
                         </div>

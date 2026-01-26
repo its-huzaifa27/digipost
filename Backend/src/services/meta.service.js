@@ -447,7 +447,7 @@ class MetaService {
                 // Step A: Get the list with the 'ig_play_count' field
                 const mediaResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, {
                     params: {
-                        fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count,ig_play_count',
+                        fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count,ig_play_count,permalink',
                         limit: 10,
                         access_token: connection.accessToken
                     }
@@ -627,7 +627,7 @@ class MetaService {
             try {
                 const feedResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/feed`, {
                     params: {
-                        fields: 'id,message,created_time,full_picture,likes.summary(true),comments.summary(true)',
+                        fields: 'id,message,created_time,full_picture,likes.summary(true),comments.summary(true),permalink_url',
                         limit: 10,
                         access_token: connection.accessToken
                     }
@@ -644,7 +644,8 @@ class MetaService {
                     caption: post.message || 'No caption',
                     like_count: post.likes?.summary?.total_count || 0,
                     comments_count: post.comments?.summary?.total_count || 0,
-                    views: 0 // Facebook Feed API doesn't easily return view count per post for public
+                    views: 0, // Facebook Feed API doesn't easily return view count per post for public
+                    permalink: post.permalink_url
                 }));
 
                 console.log(`[FB_INSIGHTS] Posts fetch success: ${topMedia.length} posts`);
