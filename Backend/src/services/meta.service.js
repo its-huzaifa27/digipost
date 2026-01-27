@@ -429,64 +429,68 @@ class MetaService {
 
             // Demographics with breakdown (Followers, Engaged, Reached)
             const errors = {};
-            try {
-                // 1. Follower Demographics (Lifetime)
+            if (profileData && profileData.followers_count && profileData.followers_count >= 100) {
                 try {
-                    const demoRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                        params: {
-                            metric: 'follower_demographics',
-                            period: 'lifetime',
-                            metric_type: 'total_value',
-                            breakdown: 'age,gender,country,city',
-                            access_token: connection.accessToken
-                        }
-                    });
-                    insightsData.push(...(demoRes.data.data || []));
-                } catch (e) {
-                    console.error('[IG_INSIGHTS] Follower Demographics failed:', e.response?.data?.error?.message);
-                    errors.follower_demographics = e.response?.data?.error?.message;
-                }
+                    // 1. Follower Demographics (Lifetime)
+                    try {
+                        const demoRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                            params: {
+                                metric: 'follower_demographics',
+                                period: 'lifetime',
+                                metric_type: 'total_value',
+                                breakdown: 'age,gender,country,city',
+                                access_token: connection.accessToken
+                            }
+                        });
+                        insightsData.push(...(demoRes.data.data || []));
+                    } catch (e) {
+                        console.error('[IG_INSIGHTS] Follower Demographics failed:', e.response?.data?.error?.message);
+                        errors.follower_demographics = e.response?.data?.error?.message;
+                    }
 
-                // 2. Engaged Audience (Last 30 Days)
-                try {
-                    const engagedRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                        params: {
-                            metric: 'engaged_audience_demographics',
-                            period: 'lifetime',
-                            timeframe: 'this_month',
-                            metric_type: 'total_value',
-                            breakdown: 'age,gender,country,city',
-                            access_token: connection.accessToken
-                        }
-                    });
-                    console.log('[IG_DEBUG] Engaged Raw:', JSON.stringify(engagedRes.data, null, 2));
-                    insightsData.push(...(engagedRes.data.data || []));
-                } catch (e) {
-                    console.error('[IG_INSIGHTS] Engaged Demographics failed:', e.response?.data?.error?.message);
-                    errors.engaged_audience_demographics = e.response?.data?.error?.message;
-                }
+                    // 2. Engaged Audience (Last 30 Days)
+                    try {
+                        const engagedRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                            params: {
+                                metric: 'engaged_audience_demographics',
+                                period: 'lifetime',
+                                timeframe: 'this_month',
+                                metric_type: 'total_value',
+                                breakdown: 'age,gender,country,city',
+                                access_token: connection.accessToken
+                            }
+                        });
+                        console.log('[IG_DEBUG] Engaged Raw:', JSON.stringify(engagedRes.data, null, 2));
+                        insightsData.push(...(engagedRes.data.data || []));
+                    } catch (e) {
+                        console.error('[IG_INSIGHTS] Engaged Demographics failed:', e.response?.data?.error?.message);
+                        errors.engaged_audience_demographics = e.response?.data?.error?.message;
+                    }
 
-                // 3. Reached Audience (Last 30 Days) - Requested Fix
-                try {
-                    const reachedRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
-                        params: {
-                            metric: 'reached_audience_demographics',
-                            period: 'lifetime',
-                            timeframe: 'this_month',
-                            metric_type: 'total_value',
-                            breakdown: 'age,gender,country,city',
-                            access_token: connection.accessToken
-                        }
-                    });
-                    console.log('[IG_DEBUG] Reached Raw:', JSON.stringify(reachedRes.data, null, 2));
-                    insightsData.push(...(reachedRes.data.data || []));
-                } catch (e) {
-                    console.error('[IG_INSIGHTS] Reached Demographics failed:', e.response?.data?.error?.message);
-                    errors.reached_audience_demographics = e.response?.data?.error?.message;
-                }
+                    // 3. Reached Audience (Last 30 Days) - Requested Fix
+                    try {
+                        const reachedRes = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/insights`, {
+                            params: {
+                                metric: 'reached_audience_demographics',
+                                period: 'lifetime',
+                                timeframe: 'this_month',
+                                metric_type: 'total_value',
+                                breakdown: 'age,gender,country,city',
+                                access_token: connection.accessToken
+                            }
+                        });
+                        console.log('[IG_DEBUG] Reached Raw:', JSON.stringify(reachedRes.data, null, 2));
+                        insightsData.push(...(reachedRes.data.data || []));
+                    } catch (e) {
+                        console.error('[IG_INSIGHTS] Reached Demographics failed:', e.response?.data?.error?.message);
+                        errors.reached_audience_demographics = e.response?.data?.error?.message;
+                    }
 
-            } catch (e) {
-                console.error('[IG_INSIGHTS] Demographics Block failed:', e.message);
+                } catch (e) {
+                    console.error('[IG_INSIGHTS] Demographics Block failed:', e.message);
+                }
+            } else {
+                console.log(`[IG_INSIGHTS] Skipping demographics: Not enough followers (${profileData?.followers_count || 0} < 100)`);
             }
 
             // 3. Media Insights (The "0 Views" Fix)
@@ -496,7 +500,7 @@ class MetaService {
                 const mediaResponse = await axios.get(`${FB_GRAPH_URL}/${connection.igBusinessId}/media`, {
                     params: {
                         fields: 'id,media_type,media_product_type,media_url,thumbnail_url,timestamp,caption,like_count,comments_count,ig_play_count,permalink',
-                        limit: 10,
+                        limit: 100,
                         access_token: connection.accessToken
                     }
                 });
@@ -515,39 +519,16 @@ class MetaService {
                     let views = 0;
                     let saved = 0;
 
-                    // --- VIEW COUNT STRATEGY (Updated) ---
-                    // 1. Field 'ig_play_count' (Fastest, usually for Reels)
-                    if (media.ig_play_count !== undefined) {
-                        views = media.ig_play_count;
-                    }
-                    else {
-                        // 2. Metric 'views' (New Standard for all types in v22+)
-                        try {
-                            const viewsRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
-                                params: { metric: 'views', access_token: connection.accessToken }
-                            });
-                            views = viewsRes.data.data?.[0]?.values?.[0]?.value || 0;
-                        } catch (e) {
-                            // 3. Metric 'plays' (Fallback for Video/Reels)
-                            if (media.media_type === 'VIDEO' || media.media_product_type === 'REELS') {
-                                try {
-                                    const playsRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
-                                        params: { metric: 'plays', access_token: connection.accessToken }
-                                    });
-                                    views = playsRes.data.data?.[0]?.values?.[0]?.value || 0;
-                                } catch (err) { /* Next fallback */ }
-                            }
-
-                            // 4. Metric 'reach' (Last Resort for all)
-                            if (views === 0) {
-                                try {
-                                    const reachRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
-                                        params: { metric: 'reach', access_token: connection.accessToken }
-                                    });
-                                    views = reachRes.data.data?.[0]?.values?.[0]?.value || 0;
-                                } catch (err) { /* Give up */ }
-                            }
-                        }
+                    // --- VIEW COUNT STRATEGY (v22.0 Simplified) ---
+                    // Only request 'views' metric logic.
+                    try {
+                        const viewsRes = await axios.get(`${FB_GRAPH_URL}/${media.id}/insights`, {
+                            params: { metric: 'views', access_token: connection.accessToken }
+                        });
+                        views = viewsRes.data.data?.[0]?.values?.[0]?.value || 0;
+                    } catch (e) {
+                        // console.warn(`[IG_INSIGHTS] Media views fetch failed for ${media.id}`, e.response?.data || e.message);
+                        // Fallback to 0 is fine if metric doesn't exist for some reason
                     }
 
                     // --- SAVED COUNT ---
@@ -666,7 +647,7 @@ class MetaService {
                 const feedResponse = await axios.get(`${FB_GRAPH_URL}/${connection.pageId}/feed`, {
                     params: {
                         fields: 'id,message,created_time,full_picture,likes.summary(true),comments.summary(true),permalink_url',
-                        limit: 10,
+                        limit: 100,
                         access_token: connection.accessToken
                     }
                 });
