@@ -128,7 +128,7 @@ export function ScheduledPosts() {
                             : `No scheduled posts found for ${platforms.find(p => p.id === selectedPlatform)?.label}.`}
                     </p>
                     {selectedPlatform === 'all' && (
-                        <Button onClick={() => window.location.href = '/create-post'}>
+                        <Button onClick={() => window.location.href = '/create-post-page'}>
                             Schedule a Post
                         </Button>
                     )}
