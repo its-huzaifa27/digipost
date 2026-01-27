@@ -27,8 +27,11 @@ export function Login() {
                 body: JSON.stringify({ email, password })
             });
 
-            // Store user details (but NOT the token - that's in the cookie now)
+            // Store user details and token
             localStorage.setItem('user', JSON.stringify(data.user));
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
 
             // Redirect based on role
             if (data.user.role === 'moderator') {

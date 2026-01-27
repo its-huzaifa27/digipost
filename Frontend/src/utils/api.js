@@ -15,6 +15,10 @@ export const apiFetch = async (endpoint, options = {}) => {
       ...(options.body instanceof FormData
         ? {}
         : { "Content-Type": "application/json" }),
+      // Add Authorization header if token exists
+      ...(localStorage.getItem('token')
+        ? { "Authorization": `Bearer ${localStorage.getItem('token')}` }
+        : {})
     },
     credentials: "include", // Important for HttpOnly cookies
   };

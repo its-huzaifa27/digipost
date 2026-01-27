@@ -34,8 +34,11 @@ export function Signup() {
                 body: JSON.stringify({ ...formData, role })
             });
 
-            // Store user details (token is now HttpOnly cookie)
+            // Store user details (token is now HttpOnly cookie + localStorage backup)
             localStorage.setItem('user', JSON.stringify(data.user));
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+            }
             // Redirect based on role or default to dashboard
             navigate('/dashboard');
         } catch (err) {
