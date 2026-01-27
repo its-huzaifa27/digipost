@@ -32,7 +32,7 @@ export function DashboardLayout({ children }) {
                 >
                     <FaBars className="w-6 h-6" />
                 </button>
-                <span className="font-bold text-lg text-gray-900">Digipost</span>
+                <span className="font-bold text-lg text-gray-900">Publixy</span>
                 <div className="w-8"></div> {/* Spacer for centering if needed */}
             </div>
 

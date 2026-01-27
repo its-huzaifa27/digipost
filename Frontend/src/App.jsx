@@ -16,6 +16,7 @@ import { Feedback } from './pages/Feedback';
 import { HowItWorks } from './pages/HowItWorks';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -29,6 +30,7 @@ function App() {
         <>
           <Header />
           <LandingPage />
+          <Footer />
         </>
       } />
       <Route path="/login" element={<Login />} />

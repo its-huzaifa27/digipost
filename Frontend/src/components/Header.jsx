@@ -27,8 +27,9 @@ export function Header() {
 
                     {/* Logo Section */}
                     <div className="flex items-center shrink-0 cursor-pointer">
-                        <Link to="/">
-                            <img src="https://placehold.co/120x40?text=Logo" alt="Logo" className="h-10" />
+                        <Link to="/" className="flex items-center gap-2">
+                            <img src="/images/logo/logo.png" alt="Publixy Logo" className="w-10 h-10 object-contain" />
+                            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Publixy</span>
                         </Link>
                     </div>
 

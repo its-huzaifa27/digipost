@@ -51,11 +51,13 @@ export function Sidebar({ isOpen, onClose }) {
         )}>
             {/* Logo */}
             <div className="p-4 pb-2 flex items-center justify-between">
-                <Link to="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                        D
-                    </div>
-                    <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-gray-900 to-gray-600">
+                <Link to="/" className="flex items-center gap-3">
+                    <img
+                        src="/images/logo/logo.png"
+                        alt="Publixy Logo"
+                        className="w-10 h-10 object-contain"
+                    />
+                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
                         Publixy
                     </span>
                 </Link>
