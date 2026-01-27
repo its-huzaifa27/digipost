@@ -18,11 +18,14 @@ export function Sidebar({ isOpen, onClose }) {
         }
     }, [location.pathname]);
 
-    const handleLogout = () => {
-        // Clear auth data
+    const handleLogout = async () => {
+        try {
+            await apiFetch('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        // Redirect to login
         navigate('/login');
     };
 

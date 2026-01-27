@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../components/layout/DashboardLayout';
 import { Button } from '../components/ui/Button';
+import { apiFetch } from '../utils/api';
 import { ClientCard } from '../components/clients/ClientCard';
 import { AddClientModal } from '../components/clients/AddClientModal';
 import { FaPlus, FaSpinner } from 'react-icons/fa6';
@@ -24,48 +25,52 @@ export function Clients() {
 
     const fetchClients = async () => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/clients`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
+            const data = await apiFetch('/api/clients');
 
-                // Transform DB data to frontend Card format
-                const formattedClients = data.map(c => ({
-                    id: c.id,
-                    name: c.client_name,
-                    industry: c.industry || 'General',
-                    logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
-                    connections: c.connections || [],
-                    isActive: c.is_active !== false, // Default to true if undefined
-                    stats: {
-                        totalPosts: 0, // Placeholder
-                        followers: '0'   // Placeholder
-                    },
-                    platforms: {
-                        instagram: { connected: c.instagram_enabled },
-                        facebook: { connected: c.facebook_enabled },
-                        twitter: { connected: c.twitter_enabled },
-                        linkedin: { connected: c.linkedin_enabled },
-                        whatsapp: { connected: c.whatsapp_enabled },
-                        pinterest: { connected: c.pinterest_enabled },
-                        tiktok: { connected: c.tiktok_enabled },
-                    }
-                }));
-                setClients(formattedClients);
-            } else if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                navigate('/login');
-            }
+            // Transform DB data to frontend Card format
+            const formattedClients = data.map(c => ({
+                id: c.id,
+                name: c.client_name,
+                industry: c.industry || 'General',
+                logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
+                connections: c.connections || [],
+                isActive: c.is_active !== false, // Default to true if undefined
+                stats: {
+                    totalPosts: 0, // Placeholder
+                    followers: '0'   // Placeholder
+                },
+                platforms: {
+                    instagram: { connected: c.instagram_enabled },
+                    facebook: { connected: c.facebook_enabled },
+                    twitter: { connected: c.twitter_enabled },
+                    linkedin: { connected: c.linkedin_enabled },
+                    whatsapp: { connected: c.whatsapp_enabled },
+                    pinterest: { connected: c.pinterest_enabled },
+                    tiktok: { connected: c.tiktok_enabled },
+                }
+            }));
+            setClients(formattedClients);
         } catch (error) {
             console.error("Failed to fetch clients", error);
+            if (error.message.includes('Access token required')) {
+                navigate('/login');
+            }
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const checkClientStatus = async (client) => {
+        try {
+            const data = await apiFetch(`/api/clients/${client.id}/status`);
+
+            // Update client in list with new status
+            setClients(prev => prev.map(c =>
+                c.id === client.id ? { ...c, ...data } : c
+            ));
+            alert(`Status updated for ${client.client_name}`);
+        } catch (error) {
+            console.error("Failed to check status", error);
         }
     };
 
@@ -78,20 +83,14 @@ export function Clients() {
         setClients(prev => prev.map(c => c.id === client.id ? { ...c, isActive: !c.isActive } : c));
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-
-            const res = await fetch(`${API_URL}/api/clients/${client.id}/status`, {
+            // Using apiFetch for the PATCH request
+            await apiFetch(`/api/clients/${client.id}/status`, {
                 method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ isActive: !client.isActive })
             });
-
-            if (!res.ok) throw new Error('Failed to update status');
-
+            // If successful, the optimistic update stands.
+            // Optionally, re-fetch or call checkClientStatus to ensure consistency.
+            // For now, we rely on the optimistic update.
         } catch (err) {
             console.error(err);
             alert("Failed to update status.");

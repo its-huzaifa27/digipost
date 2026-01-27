@@ -51,7 +51,7 @@ export function Header() {
 
                     {/* CTA Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
-                        {localStorage.getItem('token') ? (
+                        {localStorage.getItem('user') ? (
                             <Link to="/dashboard">
                                 <button className="bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all hover:shadow-lg transform hover:-translate-y-0.5">
                                     Go to Dashboard
@@ -105,7 +105,7 @@ export function Header() {
                             </a>
                         ))}
                         <div className="pt-4 space-y-3">
-                            {localStorage.getItem('token') ? (
+                            {localStorage.getItem('user') ? (
                                 <Link to="/dashboard" className="w-full">
                                     <button className="w-full bg-[#2C4BFF] hover:bg-[#1f38d6] text-white text-lg font-semibold px-6 py-3 rounded-full transition-all shadow-md">
                                         Go to Dashboard

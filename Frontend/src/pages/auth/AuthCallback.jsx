@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
+import { apiFetch } from '../../utils/api';
 
 export function AuthCallback() {
     const [searchParams] = useSearchParams();
@@ -24,8 +25,6 @@ export function AuthCallback() {
 
     const connectFacebook = async (code) => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token'); // Assuming JWT is stored here
             const selectedClientRaw = localStorage.getItem('selectedClient');
             const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
             const clientId = selectedClient?.id;
@@ -35,25 +34,14 @@ export function AuthCallback() {
                 return;
             }
 
-            const response = await fetch(`${API_URL}/api/meta/callback`, {
+            const data = await apiFetch('/api/meta/callback', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ code, clientId })
             });
 
-            const data = await response.json();
+            setStatus('Success! Connected. Redirecting...');
+            setTimeout(() => navigate('/dashboard'), 1200);
 
-            if (response.ok) {
-                setStatus('Success! Connected. Redirecting...');
-                setTimeout(() => navigate('/dashboard'), 1200);
-            } else {
-                const errorMsg = data.error || `Server error: ${response.status}`;
-                console.error('Facebook connection failed:', errorMsg);
-                setStatus(`Error: ${errorMsg}`);
-            }
         } catch (error) {
             console.error('Connection error:', error);
             setStatus(`Error: ${error.message || 'Could not reach backend.'}`);

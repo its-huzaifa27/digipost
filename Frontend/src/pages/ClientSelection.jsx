@@ -5,6 +5,7 @@ import { FaBuilding, FaSpinner, FaPlus, FaArrowRightFromBracket } from 'react-ic
 import { ClientCard } from '../components/clients/ClientCard';
 import { Button } from '../components/ui/Button';
 import { AddClientModal } from '../components/clients/AddClientModal';
+import { apiFetch } from '../utils/api';
 
 export function ClientSelection() {
     const [clients, setClients] = useState([]);
@@ -14,45 +15,37 @@ export function ClientSelection() {
 
     const fetchClients = async () => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/clients`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const data = await apiFetch('/api/clients');
+            
+            // Transform DB data to frontend Card format
+            const formattedClients = data.map(c => ({
+                id: c.id,
+                name: c.client_name,
+                industry: c.industry || 'General',
+                logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
+                connections: c.connections || [],
+                stats: {
+                    totalPosts: 0, // Placeholder
+                    followers: '0'   // Placeholder
+                },
+                platforms: {
+                    instagram: { connected: c.instagram_enabled },
+                    facebook: { connected: c.facebook_enabled },
+                    twitter: { connected: c.twitter_enabled },
+                    linkedin: { connected: c.linkedin_enabled },
+                    whatsapp: { connected: c.whatsapp_enabled },
+                    pinterest: { connected: c.pinterest_enabled },
+                    tiktok: { connected: c.tiktok_enabled },
                 }
-            });
-            if (response.ok) {
-                const data = await response.json();
-
-                // Transform DB data to frontend Card format
-                const formattedClients = data.map(c => ({
-                    id: c.id,
-                    name: c.client_name,
-                    industry: c.industry || 'General',
-                    logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(c.client_name)}&background=random&color=fff`,
-                    connections: c.connections || [],
-                    stats: {
-                        totalPosts: 0, // Placeholder
-                        followers: '0'   // Placeholder
-                    },
-                    platforms: {
-                        instagram: { connected: c.instagram_enabled },
-                        facebook: { connected: c.facebook_enabled },
-                        twitter: { connected: c.twitter_enabled },
-                        linkedin: { connected: c.linkedin_enabled },
-                        whatsapp: { connected: c.whatsapp_enabled },
-                        pinterest: { connected: c.pinterest_enabled },
-                        tiktok: { connected: c.tiktok_enabled },
-                    }
-                }));
-                setClients(formattedClients);
-            } else if (response.status === 401 || response.status === 403) {
-                localStorage.removeItem('token');
+            }));
+            setClients(formattedClients);
+        } catch (error) {
+            console.error("Failed to fetch clients", error);
+            if (error.message.includes('Access token required') || error.message.includes('Invalid')) {
+                // Only redirect on explicit auth failure
                 localStorage.removeItem('user');
                 navigate('/login');
             }
-        } catch (error) {
-            console.error("Failed to fetch clients", error);
         } finally {
             setIsLoading(false);
         }
@@ -72,7 +65,8 @@ export function ClientSelection() {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        // ideally call an API endpoint to clear cookie
+        // For now just clear local state
         localStorage.removeItem('user');
         localStorage.removeItem('selectedClient');
         navigate('/login');

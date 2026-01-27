@@ -53,7 +53,7 @@ export function AddClientModal({ isOpen, onClose, onSuccess }) {
 
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
+
 
             const response = await fetch(`${API_URL}/api/clients`, {
                 method: 'POST',

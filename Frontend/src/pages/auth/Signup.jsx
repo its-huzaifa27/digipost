@@ -5,6 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { apiFetch } from '../../utils/api';
 
 export function Signup() {
     const [role, setRole] = useState('user'); // 'user' or 'moderator'
@@ -28,26 +29,17 @@ export function Signup() {
         setError('');
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${API_URL}/auth/signup`, {
+            const data = await apiFetch('/auth/signup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, role })
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                // Store token
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                // Redirect based on role or default to dashboard
-                navigate('/dashboard');
-            } else {
-                setError(data.error || 'Signup failed');
-            }
+            // Store user details (token is now HttpOnly cookie)
+            localStorage.setItem('user', JSON.stringify(data.user));
+            // Redirect based on role or default to dashboard
+            navigate('/dashboard');
         } catch (err) {
-            setError('Something went wrong. Please try again.');
+            setError(err.message || 'Signup failed');
         } finally {
             setIsLoading(false);
         }

@@ -9,6 +9,7 @@ import { FaChartPie, FaRobot, FaPlus, FaLink } from 'react-icons/fa6';
 import { AnalyticsContent } from '../components/dashboard/AnalyticsContent';
 import { CreatePostContent } from '../components/dashboard/CreatePostContent';
 import { AIAgentContent } from '../components/dashboard/AIAgentContent';
+import { apiFetch } from '../utils/api';
 
 export function Dashboard() {
     const navigate = useNavigate();
@@ -69,26 +70,19 @@ export function Dashboard() {
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const token = localStorage.getItem('token');
                 const query = selectedClientId !== 'all' ? `?clientId=${selectedClientId}` : '';
 
-                const response = await fetch(`${API_URL}/api/dashboard/stats${query}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const data = await apiFetch(`/api/dashboard/stats${query}`);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setStats(data.stats);
-                    setEngagementData(data.stats.trendData);
-                    setClients(data.clients);
+                setStats(data.stats);
+                setEngagementData(data.stats.trendData);
+                setClients(data.clients);
 
-                    if (selectedClientId !== 'all') {
-                        const current = data.clients.find(c => c.id === selectedClientId);
-                        if (current) setSelectedClientName(current.name);
-                    } else {
-                        setSelectedClientName('All Clients');
-                    }
+                if (selectedClientId !== 'all') {
+                    const current = data.clients.find(c => c.id === selectedClientId);
+                    if (current) setSelectedClientName(current.name);
+                } else {
+                    setSelectedClientName('All Clients');
                 }
             } catch (error) {
                 console.error("Failed to load dashboard data", error);

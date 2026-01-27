@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FaInstagram, FaFacebook, FaChartLine, FaUsers, FaEye, FaSpinner, FaTriangleExclamation, FaThumbsUp, FaUserGroup, FaArrowUpRightFromSquare, FaFileLines, FaVideo, FaImage, FaClone } from 'react-icons/fa6';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { apiFetch } from '../../utils/api';
 
 export function AnalyticsContent() {
     const [activeTab, setActiveTab] = useState('instagram'); // 'instagram' | 'facebook'
@@ -13,7 +14,7 @@ export function AnalyticsContent() {
     const [contentTypeFilter, setContentTypeFilter] = useState('All');
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const token = localStorage.getItem('token');
+
     const storedClient = JSON.parse(localStorage.getItem('selectedClient') || '{}');
 
     useEffect(() => {
@@ -28,18 +29,11 @@ export function AnalyticsContent() {
         setInsights(null);
 
         try {
-            const response = await fetch(`${API_URL}/api/meta/pages?clientId=${storedClient.id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const filtered = data.filter(c => c.platform === activeTab);
-                setConnections(filtered);
-                if (filtered.length > 0) {
-                    setSelectedConnection(filtered[0]);
-                }
-            } else {
-                setError("Failed to fetch connected accounts");
+            const data = await apiFetch(`/api/meta/pages?clientId=${storedClient.id}`);
+            const filtered = data.filter(c => c.platform === activeTab);
+            setConnections(filtered);
+            if (filtered.length > 0) {
+                setSelectedConnection(filtered[0]);
             }
         } catch (err) {
             setError("Error connecting to the server");
@@ -57,17 +51,10 @@ export function AnalyticsContent() {
     const fetchInsights = async (connectionId) => {
         setIsFetchingInsights(true);
         try {
-            const response = await fetch(`${API_URL}/api/meta/insights/${connectionId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setInsights(data);
-            } else {
-                setError("Failed to fetch insights for this account");
-            }
+            const data = await apiFetch(`/api/meta/insights/${connectionId}`);
+            setInsights(data);
         } catch (err) {
-            setError("Error fetching insights");
+            setError("Failed to fetch insights for this account");
         } finally {
             setIsFetchingInsights(false);
         }

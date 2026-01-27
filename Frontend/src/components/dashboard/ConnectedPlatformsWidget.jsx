@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaWhatsapp, FaPinterest, FaTiktok } from 'react-icons/fa6';
+import { apiFetch } from '../../utils/api';
 import { clsx } from 'clsx';
 import { Button } from '../ui/Button';
 
@@ -26,13 +27,7 @@ export function ConnectedPlatformsWidget({ client }) {
     const fetchConnections = async () => {
         if (!clientId) return;
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/api/meta/pages?clientId=${encodeURIComponent(clientId)}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) return;
-            const data = await res.json();
+            const data = await apiFetch(`/api/meta/pages?clientId=${encodeURIComponent(clientId)}`);
             setConnections(Array.isArray(data) ? data : []);
         } catch (e) {
             console.error('Failed to load platform connections', e);
@@ -54,19 +49,12 @@ export function ConnectedPlatformsWidget({ client }) {
         if (!confirm(`Are you sure you want to disconnect ${platformId}?`)) return;
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-
-            const response = await fetch(`${API_URL}/api/meta/disconnect`, {
+            const data = await apiFetch('/api/meta/disconnect', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ clientId, platform: platformId })
             });
 
-            if (response.ok) {
+            if (data.success) {
                 // Refresh list
                 fetchConnections();
             } else {
@@ -79,15 +67,9 @@ export function ConnectedPlatformsWidget({ client }) {
 
     const handleConnect = async (platformId) => {
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-
             // For Facebook and Instagram, use the new Production Meta Service
             if (platformId === 'facebook' || platformId === 'instagram') {
-                const response = await fetch(`${API_URL}/api/meta/auth-url`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
+                const data = await apiFetch('/api/meta/auth-url');
 
                 if (data.url) {
                     window.location.href = data.url;
@@ -98,13 +80,8 @@ export function ConnectedPlatformsWidget({ client }) {
             }
 
             // Legacy/Other platforms
-            const response = await fetch(`${API_URL}/api/auth/connect/${platformId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const data = await apiFetch(`/api/auth/connect/${platformId}`);
 
-            if (!response.ok) throw new Error('Failed to get auth URL');
-
-            const data = await response.json();
             if (data.url) {
                 // Redirects the user to the platform's OAuth page
                 window.location.href = data.url;

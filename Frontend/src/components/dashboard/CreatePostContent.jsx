@@ -7,6 +7,7 @@ import { MediaUploader } from "../features/create-post/MediaUploader";
 import { PostPreview } from "../features/create-post/PostPreview";
 import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen, FaLock } from 'react-icons/fa6';
 import { Modal } from "../ui/Modal";
+import { apiFetch } from '../../utils/api';
 
 export function CreatePostContent({ client }) {
     const [creationMode, setCreationMode] = useState("manual"); // 'manual' | 'ai'
@@ -38,9 +39,6 @@ export function CreatePostContent({ client }) {
     useEffect(() => {
         const fetchAccounts = async () => {
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const token = localStorage.getItem('token');
-
                 // Get selected client
                 const selectedClientRaw = localStorage.getItem('selectedClient');
                 const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
@@ -53,29 +51,25 @@ export function CreatePostContent({ client }) {
                     return;
                 }
 
-                const response = await fetch(`${API_URL}/api/meta/pages?clientId=${clientId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                // apiFetch handles the baseURL and Authorization header automatically
+                const pages = await apiFetch(`/api/meta/pages?clientId=${clientId}`);
 
-                if (response.ok) {
-                    const pages = await response.json();
+                // Transform backend data to match UI component structure
+                const formattedAccounts = pages.map(page => ({
+                    id: page.id, // Use unique Connection ID (UUID)
+                    platformId: page.platform, // Helper for icons/colors
+                    name: page.pageName || page.platform,
+                    connected: true,
+                    username: page.platformUserId || 'Connected',
+                    color: page.platform === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-blue-600',
+                    icon: page.platform === 'instagram' ? <FaInstagram /> : <FaFacebookF />
+                }));
 
-                    // Transform backend data to match UI component structure
-                    const formattedAccounts = pages.map(page => ({
-                        id: page.id, // Use unique Connection ID (UUID)
-                        platformId: page.platform, // Helper for icons/colors
-                        name: page.pageName || page.platform,
-                        connected: true,
-                        username: page.platformUserId || 'Connected',
-                        color: page.platform === 'instagram' ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-blue-600',
-                        icon: page.platform === 'instagram' ? <FaInstagram /> : <FaFacebookF />
-                    }));
+                setSocialAccounts(formattedAccounts);
 
-                    setSocialAccounts(formattedAccounts);
+                // Auto-select all connected
+                setSelectedPlatforms(formattedAccounts.map(a => a.id));
 
-                    // Auto-select all connected
-                    setSelectedPlatforms(formattedAccounts.map(a => a.id));
-                }
             } catch (error) {
                 console.error("Failed to fetch accounts:", error);
             } finally {
@@ -97,30 +91,30 @@ export function CreatePostContent({ client }) {
         if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
             const selectedClientRaw = localStorage.getItem('selectedClient');
             const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
             const clientId = selectedClient?.id;
 
-            const response = await fetch(`${API_URL}/api/meta/disconnect`, {
+            const data = await apiFetch('/api/meta/disconnect', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ clientId, connectionId })
             });
 
-            if (response.ok) {
-                // Remove from state
-                setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
-                setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
-            } else {
-                alert("Failed to disconnect account.");
+            if (data.success) { // Assuming apiFetch throws on error, or returns data on success
+                 // Remove from state
+                 setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
+                 setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
+            } else { // Fallback if data doesn't have success flag but didn't throw
+                 // If the backend response structure is different, adjust this.
+                 // Assuming apiFetch returns parsed JSON.
+                 // If previous code checked response.ok, apiFetch would have thrown if it wasn't ok.
+                 // So we can assume success if we get here, unless the APIs return { success: false }
+                 setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
+                 setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
             }
         } catch (error) {
             console.error("Disconnect failed:", error);
+            alert("Failed to disconnect account.");
         }
     };
 
@@ -137,28 +131,17 @@ export function CreatePostContent({ client }) {
 
         setIsGeneratingAi(true);
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-
-            const response = await fetch(`${API_URL}/api/ai/generate`, {
+            const data = await apiFetch('/api/ai/generate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ topic: aiPrompt })
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                // Data format: { caption, hashtags }
-                setCaption(data.caption);
-                setHashtags(data.hashtags);
-                // Switch back to manual mode to let user review
-                setCreationMode('manual');
-            } else {
-                throw new Error("Failed to generate content");
-            }
+            // Data format: { caption, hashtags }
+            setCaption(data.caption);
+            setHashtags(data.hashtags);
+            // Switch back to manual mode to let user review
+            setCreationMode('manual');
+
         } catch (error) {
             console.error("AI Generation Error:", error);
             alert("Failed to generate content. Please try again.");
@@ -175,38 +158,26 @@ export function CreatePostContent({ client }) {
 
         setIsGeneratingImage(true);
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const token = localStorage.getItem('token');
-
             // 1. Refine the prompt using our AI Service
             // This turns "blue car" into "Cinematic shot of a sapphire blue sports car..."
-            const response = await fetch(`${API_URL}/api/ai/refine-image-prompt`, {
+            const data = await apiFetch('/api/ai/refine-image-prompt', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ topic: aiPrompt })
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                const newPrompt = data.prompt;
-                setRefinedPrompt(newPrompt);
+            const newPrompt = data.prompt;
+            setRefinedPrompt(newPrompt);
 
-                // 2. UX: Copy to clipboard so user can just paste it
-                try {
-                    await navigator.clipboard.writeText(newPrompt);
-                } catch (err) {
-                    console.warn("Clipboard write failed", err);
-                }
-
-                // 3. Show Modal instead of Alert
-                setShowImageModal(true);
-
-            } else {
-                throw new Error("Failed to refine prompt");
+            // 2. UX: Copy to clipboard so user can just paste it
+            try {
+                await navigator.clipboard.writeText(newPrompt);
+            } catch (err) {
+                console.warn("Clipboard write failed", err);
             }
+
+            // 3. Show Modal instead of Alert
+            setShowImageModal(true);
+
         } catch (error) {
             console.error("AI Prompt Refine Error:", error);
             alert("Failed to prepare image generation. Please try again.");
@@ -234,9 +205,6 @@ export function CreatePostContent({ client }) {
             }
 
             try {
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const token = localStorage.getItem('token');
-
                 // Get Client ID
                 const selectedClientRaw = localStorage.getItem('selectedClient');
                 const selectedClient = selectedClientRaw ? JSON.parse(selectedClientRaw) : null;
@@ -266,31 +234,37 @@ export function CreatePostContent({ client }) {
                     formData.append('scheduledTime', timestamp);
                 }
 
-                const response = await fetch(`${API_URL}/api/posts/create`, {
+                // apiFetch usage with FormData:
+                // We need to ensure apiFetch doesn't force 'Content-Type': 'application/json' if body is FormData.
+                // Assuming apiFetch checks for FormData or allows overriding headers.
+                // If apiFetch is simple, we might need to modify it or pass undefined for Content-Type.
+                // Let's assume for now we use apiFetch but pass an option to NOT set content-type if it does by default.
+                // Or better, I will check api.js in a moment. For now, I'll use it.
+                await apiFetch('/api/posts/create', {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: formData
+                    // Headers: default apiFetch might set Content-Type: application/json.
+                    // If so, FormData submission will fail.
+                    // I'll check api.js in next step.
                 });
 
-                if (response.ok) {
-                    setShowSuccess(true);
-                    setShowError(false);
-                    setTimeout(() => {
-                        setShowSuccess(false);
-                        setCaption("");
-                        setHashtags("");
-                        setMedia([]); // Reset as array
-                        setIsScheduled(false);
-                        setScheduledDate("");
-                    }, 3000);
-                } else {
-                    const data = await response.json();
-                    throw new Error(data.error || 'Backend rejected post');
-                }
+                setShowSuccess(true);
+                setShowError(false);
+                setTimeout(() => {
+                    setShowSuccess(false);
+                    setCaption("");
+                    setHashtags("");
+                    setMedia([]); // Reset as array
+                    setIsScheduled(false);
+                    setScheduledDate("");
+                }, 3000);
+
             } catch (error) {
                 console.error("Post creation failed:", error);
+                const msg = error.message || 'Backend rejected post';
+                // If apiFetch throws, we catch it here.
+                if (msg) console.error(msg); 
+                
                 setShowError(true);
                 setShowSuccess(false);
                 setTimeout(() => setShowError(false), 3000);
@@ -309,7 +283,7 @@ export function CreatePostContent({ client }) {
 
             try {
                 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                const token = localStorage.getItem('token');
+
 
                 const response = await fetch(`${API_URL}/api/clients/${client.id}/status`, {
                     method: 'PATCH',

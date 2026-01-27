@@ -5,6 +5,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { apiFetch } from '../../utils/api';
 
 export function Login() {
     const [email, setEmail] = useState('');
@@ -20,31 +21,24 @@ export function Login() {
         setError('');
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-            const response = await fetch(`${API_URL}/auth/login`, {
+            // Using apiFetch handles credentials: 'include' automatically
+            const data = await apiFetch('/auth/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
 
-            const data = await response.json();
+            // Store user details (but NOT the token - that's in the cookie now)
+            localStorage.setItem('user', JSON.stringify(data.user));
 
-            if (response.ok) {
-                // Store token
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                // Redirect based on role or default to dashboard
-                if (data.user.role === 'moderator') {
-                    navigate('/clients');
-                } else {
-                    navigate('/clients'); // Or user dashboard if different
-                }
+            // Redirect based on role
+            if (data.user.role === 'moderator') {
+                navigate('/clients');
             } else {
-                setError(data.error || 'Login failed');
+                navigate('/clients');
             }
         } catch (err) {
-            setError('Something went wrong. Please try again.');
+            console.error(err);
+            setError(err.message || 'Something went wrong. Please try again.');
         } finally {
             setIsLoading(false);
         }
