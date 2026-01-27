@@ -53,7 +53,7 @@ export function Sidebar({ isOpen, onClose }) {
                         D
                     </div>
                     <span className="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-gray-900 to-gray-600">
-                        Digipost
+                        Publixy
                     </span>
                 </Link>
                 {/* Mobile Close Button */}
