@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "target": "es2020",
+        "baseUrl": "./",
+        "checkJs": false,
+        "moduleResolution": "node"
+    },
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
