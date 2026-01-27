@@ -317,7 +317,7 @@ export const getScheduledPosts = async (req, res) => {
       whereClause.clientId = clientId;
     }
 
-    const scheduledPosts = await Post.findAll({
+    const posts = await Post.findAll({
       where: whereClause,
       order: [['scheduledAt', 'ASC']],
       include: [
@@ -328,7 +328,32 @@ export const getScheduledPosts = async (req, res) => {
       ]
     });
 
-    res.json(scheduledPosts);
+    // Enrich with platform names (since platforms array contains connection UUIDs)
+    const allConnectionIds = new Set();
+    posts.forEach(post => {
+      if (post.platforms && Array.isArray(post.platforms)) {
+        post.platforms.forEach(id => allConnectionIds.add(id));
+      }
+    });
+
+    const connections = await PlatformConnection.findAll({
+      where: { id: Array.from(allConnectionIds) },
+      attributes: ['id', 'platform']
+    });
+
+    const connectionMap = {};
+    connections.forEach(conn => {
+      connectionMap[conn.id] = conn.platform;
+    });
+
+    const postsWithPlatformTypes = posts.map(post => {
+      const p = post.toJSON();
+      // Map UUIDs to 'facebook', 'instagram' etc.
+      p.platformTypes = (p.platforms || []).map(id => connectionMap[id]).filter(Boolean);
+      return p;
+    });
+
+    res.json(postsWithPlatformTypes);
 
   } catch (error) {
     console.error("Get Scheduled Posts Error:", error);

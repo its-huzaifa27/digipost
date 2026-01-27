@@ -52,9 +52,8 @@ export function ScheduledPosts() {
     const filteredPosts = posts.filter(post => {
         if (selectedPlatform === 'all') return true;
 
-        // Check if the post's platforms array includes the selected platform
-        // Backend stores platforms as array of strings e.g. ["facebook", "instagram"]
-        return post.platforms && post.platforms.includes(selectedPlatform);
+        // Check resolved platform types from backend
+        return post.platformTypes && post.platformTypes.includes(selectedPlatform);
     });
 
     const getPlatformIcon = (platformId) => {
@@ -106,8 +105,8 @@ export function ScheduledPosts() {
                             key={platform.id}
                             onClick={() => setSelectedPlatform(platform.id)}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${selectedPlatform === platform.id
-                                    ? 'bg-blue-600 text-white shadow-md'
-                                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                                 }`}
                         >
                             {platform.icon}
@@ -152,9 +151,9 @@ export function ScheduledPosts() {
                                 )}
 
                                 <div className="absolute top-3 right-3 flex gap-2">
-                                    {post.platforms && post.platforms.map(platform => {
+                                    {post.platformTypes && post.platformTypes.map((platform, idx) => {
                                         return (
-                                            <div key={platform} className="w-8 h-8 rounded-full bg-white/90 backdrop-blur shadow-sm flex items-center justify-center text-lg" title={platform}>
+                                            <div key={idx} className="w-8 h-8 rounded-full bg-white/90 backdrop-blur shadow-sm flex items-center justify-center text-lg" title={platform}>
                                                 {getPlatformIcon(platform)}
                                             </div>
                                         );
