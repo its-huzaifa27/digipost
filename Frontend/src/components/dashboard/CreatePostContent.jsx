@@ -304,6 +304,36 @@ export function CreatePostContent({ client }) {
 
     // Check for suspended client
     if (client && client.isActive === false) {
+        const handleResumeClient = async () => {
+            if (!confirm("Are you sure you want to resume this client?")) return;
+
+            try {
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const token = localStorage.getItem('token');
+
+                const response = await fetch(`${API_URL}/api/clients/${client.id}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ isActive: true })
+                });
+
+                if (response.ok) {
+                    alert("Client resumed successfully! The page will revert shortly.");
+                    // Force a strict reload to ensure global state (sidebar, topbar, etc.) updates
+                    window.location.reload();
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to resume client');
+                }
+            } catch (error) {
+                console.error("Resume failed:", error);
+                alert("Failed to resume client. Please try again.");
+            }
+        };
+
         return (
             <div className="flex flex-col items-center justify-center p-12 text-center h-[500px] animate-in fade-in duration-500">
                 <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
@@ -313,6 +343,12 @@ export function CreatePostContent({ client }) {
                 <p className="text-gray-500 text-lg max-w-md mb-8">
                     Resume the client to do posting.
                 </p>
+                <Button
+                    onClick={handleResumeClient}
+                    className="bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200"
+                >
+                    Resume Client Services
+                </Button>
             </div>
         );
     }
