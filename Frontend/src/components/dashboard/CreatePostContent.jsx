@@ -5,10 +5,10 @@ import { Card } from "../ui/Card";
 import { clsx } from 'clsx';
 import { MediaUploader } from "../features/create-post/MediaUploader";
 import { PostPreview } from "../features/create-post/PostPreview";
-import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen } from 'react-icons/fa6';
+import { FaInstagram, FaFacebookF, FaTwitter, FaLinkedinIn, FaRobot, FaPen, FaLock } from 'react-icons/fa6';
 import { Modal } from "../ui/Modal";
 
-export function CreatePostContent() {
+export function CreatePostContent({ client }) {
     const [creationMode, setCreationMode] = useState("manual"); // 'manual' | 'ai'
     const [aiPrompt, setAiPrompt] = useState("");
     const [caption, setCaption] = useState("");
@@ -301,6 +301,21 @@ export function CreatePostContent() {
             setTimeout(() => setShowError(false), 3000);
         }
     };
+
+    // Check for suspended client
+    if (client && client.isActive === false) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 text-center h-[500px] animate-in fade-in duration-500">
+                <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                    <FaLock className="text-4xl text-red-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Client Suspended</h2>
+                <p className="text-gray-500 text-lg max-w-md mb-8">
+                    Resume the client to do posting.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full mx-auto">

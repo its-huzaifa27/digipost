@@ -52,6 +52,7 @@ export const getDashboardStats = async (req, res) => {
                 id: c.id,
                 name: c.name,
                 industry: c.industry,
+                isActive: c.isActive,
                 platforms: platforms // { instagram: { connected: true }, ... }
             };
         });

@@ -182,7 +182,10 @@ export function Dashboard() {
 
                                 {/* Quick Actions / Create Post */}
                                 <div className="lg:col-span-1 min-h-[300px]">
-                                    <CreatePostWidget onStart={() => setActiveView('create-post')} />
+                                    <CreatePostWidget
+                                        client={selectedClientData}
+                                        onStart={() => setActiveView('create-post')}
+                                    />
                                 </div>
                             </div>
 
@@ -204,7 +207,7 @@ export function Dashboard() {
 
                     {activeView === 'create-post' && (
                         <div className="animate-in slide-in-from-bottom-4 fade-in duration-500">
-                            <CreatePostContent />
+                            <CreatePostContent client={selectedClientData} />
                         </div>
                     )}
 
