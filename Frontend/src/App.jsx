@@ -7,6 +7,7 @@ import { AuthCallback } from './pages/auth/AuthCallback';
 import { Clients } from './pages/Clients';
 import { ClientSelection } from './pages/ClientSelection';
 import { CreatePostPage } from './pages/CreatePost';
+import { ScheduledPostsPage } from './pages/ScheduledPostsPage';
 import { AIAgent } from './pages/AIAgent';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
@@ -40,6 +41,7 @@ function App() {
         <Route path="/clients" element={<Clients />} />
         <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
         <Route path="/create-post-page" element={<CreatePostPage />} />
+        <Route path="/scheduled-posts" element={<ScheduledPostsPage />} />
         <Route path="/ai-agent" element={<AIAgent />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/settings" element={<Settings />} />

@@ -300,3 +300,39 @@ export const createPost = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getScheduledPosts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { clientId } = req.query;
+
+    console.log(`[ScheduledPosts] Fetching for User: ${userId}, Client: ${clientId || 'ALL'}`);
+
+    const whereClause = {
+      userId,
+      status: 'scheduled',
+    };
+
+    if (clientId && clientId !== 'all') {
+      whereClause.clientId = clientId;
+    }
+
+    const scheduledPosts = await Post.findAll({
+      where: whereClause,
+      order: [['scheduledAt', 'ASC']],
+      include: [
+        {
+          model: Client,
+          attributes: ['name', 'id']
+        }
+      ]
+    });
+
+    res.json(scheduledPosts);
+
+  } catch (error) {
+    console.error("Get Scheduled Posts Error:", error);
+    res.status(500).json({ error: "Failed to fetch scheduled posts" });
+  }
+};
+
