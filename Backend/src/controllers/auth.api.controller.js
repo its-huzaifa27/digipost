@@ -6,7 +6,12 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-it";
 
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, signupSecret } = req.body;
+
+    // Validate Secret Key
+    if (signupSecret !== process.env.SIGNUP_SECRET) {
+      return res.status(403).json({ error: "Invalid Signup Secret. Access Denied." });
+    }
 
     // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
