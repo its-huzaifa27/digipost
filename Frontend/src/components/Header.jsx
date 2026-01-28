@@ -35,7 +35,7 @@ export function Header() {
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex space-x-8 items-center">
-                        {['Features', 'Platform', 'Resources'].map((item) => (
+                        {/* {['Features', 'Platform', 'Resources'].map((item) => (
                             <div key={item} className="relative group cursor-pointer">
                                 <button className="flex items-center text-lg font-medium text-gray-700 hover:text-blue-600 transition-colors">
                                     {item}
@@ -47,7 +47,15 @@ export function Header() {
                         ))}
                         <a href="#" className="text-lg font-medium text-gray-700 hover:text-blue-600 transition-colors">
                             Pricing
-                        </a>
+                        </a> */}
+                        <div>
+                            <h3 className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 pb-2 font-bold text-xl">
+                            A Product By {' '}
+                            <a href="https://datamatex.in/" target='blank' className="hover:text-blue-700">
+                            Datamatex
+                            </a>
+                            </h3>
+                        </div>
                     </nav>
 
                     {/* CTA Buttons */}

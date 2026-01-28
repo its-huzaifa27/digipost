@@ -19,12 +19,12 @@ export function HeroSection() {
                 {/* Text Content */}
                 <div className="max-w-4xl mx-auto space-y-6 animate-fade-in-up">
                     <h1 className="text-5xl font-extrabold tracking sm:text-6xl md:text-4xl drop-shadow-lg">
-                        <span className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400">
+                        <span className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 pb-2 ">
                             Create. Design. Inspire.
                         </span>
-                        <span className="block mt-2 ">
+                        <span className="block mt-2 bg-blac ">
                             Elevate Your{" "}
-                            <span className='text-linear-to-r from-blue-400 via-purple-400 to-pink-400'>
+                            <span className='text-linear-to-r from-blue-400 via-purple-400 to-pink-400 '>
                                 Digital
                             </span>
                             {" "}
