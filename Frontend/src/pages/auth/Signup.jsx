@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import { apiFetch } from '../../utils/api';
 
@@ -17,21 +18,28 @@ export function Signup() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [secretToken, setSecretToken] = useState('');
     const navigate = useNavigate();
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
+        setError('');
+        setIsModalOpen(true);
+    };
+
+    const handleFinalSignup = async () => {
         setIsLoading(true);
         setError('');
 
         try {
             const data = await apiFetch('/auth/signup', {
                 method: 'POST',
-                body: JSON.stringify({ ...formData, role })
+                body: JSON.stringify({ ...formData, role, signupSecret: secretToken })
             });
 
             // Store user details (token is now HttpOnly cookie + localStorage backup)
@@ -43,6 +51,7 @@ export function Signup() {
             navigate('/dashboard');
         } catch (err) {
             setError(err.message || 'Signup failed');
+            setIsModalOpen(false); // Close modal on error to show error message
         } finally {
             setIsLoading(false);
         }
@@ -140,9 +149,41 @@ export function Signup() {
                     className="w-full py-3"
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Creating Account...' : 'Get Started'}
+                    {isLoading ? 'Processing...' : 'Create Account'}
                 </Button>
             </form>
+
+            {/* Secret Token Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Admin Verification"
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                        Please enter the universal admin secret to complete your registration.
+                    </p>
+                    <Input
+                        label="Secret Key"
+                        type="password"
+                        placeholder="Enter admin secret..."
+                        value={secretToken}
+                        onChange={(e) => setSecretToken(e.target.value)}
+                    />
+                    <div className="flex justify-end gap-3 mt-4">
+                        <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleFinalSignup}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Verifying...' : 'Verify & Sign Up'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             <div className="mt-8 text-center text-sm text-gray-500">
                 Already have an account?{' '}
