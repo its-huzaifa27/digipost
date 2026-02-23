@@ -4,6 +4,7 @@ import { FaXmark, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaWhatsapp, Fa
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { clsx } from 'clsx';
+import { apiFetch } from '../../utils/api';
 
 const PlatformToggle = ({ id, label, icon, checked, onChange }) => (
     <div
@@ -52,19 +53,10 @@ export function AddClientModal({ isOpen, onClose, onSuccess }) {
         setIsLoading(true);
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-
-            const response = await fetch(`${API_URL}/api/clients`, {
+            await apiFetch('/api/clients', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(formData)
             });
-
-            if (!response.ok) throw new Error('Failed to create client');
 
             // Success
             onSuccess();

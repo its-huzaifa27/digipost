@@ -51,7 +51,7 @@ export function Header() {
                         <div>
                             <h3 className="block text-transparent bg-clip-text bg-linear-to-r from-blue-400 via-purple-400 to-pink-400 pb-2 font-bold text-xl">
                             A Product By {' '}
-                            <a href="https://datamatex.in/" target='blank' className="hover:text-blue-700">
+                            <a href="https://datamatex.in/" target='blank' className="hover:text- hover:underline">
                             Datamatex
                             </a>
                             </h3>
