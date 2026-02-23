@@ -1,6 +1,6 @@
 export const connectPlatform = (req, res) => {
     const { platform } = req.params;
-    const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:5173/auth/callback';
+    const REDIRECT_URI = process.env.REDIRECT_URI || 'https://publixy.datamatex.in/auth/callback';
 
     let url = '';
     
