@@ -101,16 +101,16 @@ export function CreatePostContent({ client }) {
             });
 
             if (data.success) { // Assuming apiFetch throws on error, or returns data on success
-                 // Remove from state
-                 setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
-                 setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
+                // Remove from state
+                setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
+                setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
             } else { // Fallback if data doesn't have success flag but didn't throw
-                 // If the backend response structure is different, adjust this.
-                 // Assuming apiFetch returns parsed JSON.
-                 // If previous code checked response.ok, apiFetch would have thrown if it wasn't ok.
-                 // So we can assume success if we get here, unless the APIs return { success: false }
-                 setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
-                 setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
+                // If the backend response structure is different, adjust this.
+                // Assuming apiFetch returns parsed JSON.
+                // If previous code checked response.ok, apiFetch would have thrown if it wasn't ok.
+                // So we can assume success if we get here, unless the APIs return { success: false }
+                setSocialAccounts(prev => prev.filter(a => a.id !== connectionId));
+                setSelectedPlatforms(prev => prev.filter(id => id !== connectionId));
             }
         } catch (error) {
             console.error("Disconnect failed:", error);
@@ -263,8 +263,8 @@ export function CreatePostContent({ client }) {
                 console.error("Post creation failed:", error);
                 const msg = error.message || 'Backend rejected post';
                 // If apiFetch throws, we catch it here.
-                if (msg) console.error(msg); 
-                
+                if (msg) console.error(msg);
+
                 setShowError(true);
                 setShowSuccess(false);
                 setTimeout(() => setShowError(false), 3000);
@@ -288,7 +288,7 @@ export function CreatePostContent({ client }) {
                 const response = await fetch(`${API_URL}/api/clients/${client.id}/status`, {
                     method: 'PATCH',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ isActive: true })
