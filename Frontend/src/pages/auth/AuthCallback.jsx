@@ -9,20 +9,6 @@ export function AuthCallback() {
     const [status, setStatus] = useState('Processing...');
     const processedRef = useRef(false); // Track if we've already processed this code
 
-    useEffect(() => {
-        const code = searchParams.get('code');
-
-        if (code) {
-            // Prevent double-execution in React Strict Mode
-            if (processedRef.current) return;
-            processedRef.current = true;
-
-            connectFacebook(code);
-        } else {
-            setStatus('Error: No authorization code received.');
-        }
-    }, [searchParams]);
-
     const connectFacebook = async (code) => {
         try {
             const selectedClientRaw = localStorage.getItem('selectedClient');
@@ -47,6 +33,20 @@ export function AuthCallback() {
             setStatus(`Error: ${error.message || 'Could not reach backend.'}`);
         }
     };
+
+    useEffect(() => {
+        const code = searchParams.get('code');
+
+        if (code) {
+            // Prevent double-execution in React Strict Mode
+            if (processedRef.current) return;
+            processedRef.current = true;
+
+            connectFacebook(code);
+        } else {
+            setStatus('Error: No authorization code received.');
+        }
+    }, [searchParams]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">

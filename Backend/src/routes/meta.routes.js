@@ -9,20 +9,21 @@ const router = express.Router();
 // 1. Get Auth URL
 // This is safe to be public: it only returns the Meta OAuth URL (no secrets/tokens).
 router.get("/auth-url", async (req, res) => {
-  const url = metaService.getAuthUrl();
+  const { redirectUri } = req.query;
+  const url = metaService.getAuthUrl(redirectUri);
   res.json({ url });
 });
 
 // 2. Handle Callback
 router.post("/callback", authenticateToken, async (req, res) => {
-  const { code, clientId } = req.body;
+  const { code, clientId, redirectUri } = req.body;
   const userId = req.user.id; // From middleware
 
   if (!code) return res.status(400).json({ error: "Code is required" });
   if (!clientId) return res.status(400).json({ error: "clientId is required" });
 
   console.log(
-    `[MetaCallback] Processing for User: ${userId}, ClientID: ${clientId}`,
+    `[MetaCallback] Processing for User: ${userId}, ClientID: ${clientId}, RedirectURI: ${redirectUri || 'default'}`,
   );
 
   try {
@@ -35,7 +36,7 @@ router.post("/callback", authenticateToken, async (req, res) => {
 
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    await metaService.exchangeCodeForToken(code, userId, clientId);
+    await metaService.exchangeCodeForToken(code, userId, clientId, redirectUri);
     res.json({
       success: true,
       message: "Facebook account connected successfully!",

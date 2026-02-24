@@ -12,14 +12,16 @@ class MetaService {
     /**
      * Generates the URL for the user to log in with Facebook and grant permissions.
      */
-    getAuthUrl() {
+    getAuthUrl(redirectUri) {
         // Permissions:
+        // - pages_show_list: To list the pages
         // - pages_manage_posts: To post to FB Pages
         // - pages_read_engagement: To read page info
         // - instagram_basic: To read IG connection
         // - instagram_content_publish: To post to IG
         // - public_profile: Basic info
         const scopes = [
+            'pages_show_list',
             'pages_manage_posts',
             'pages_read_engagement',
             'instagram_basic',
@@ -28,20 +30,24 @@ class MetaService {
             'public_profile'
         ].join(',');
 
-        return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&state=random_state_string&scope=${encodeURIComponent(scopes)}`;
+        const finalRedirectUri = redirectUri || process.env.REDIRECT_URI;
+
+        return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(finalRedirectUri)}&state=random_state_string&scope=${encodeURIComponent(scopes)}&auth_type=rerequest`;
     }
 
     /**
      * Exchanges the short-lived code from the frontend for a Long-Lived User Access Token.
      */
-    async exchangeCodeForToken(code, userId, clientId = null) {
+    async exchangeCodeForToken(code, userId, clientId = null, redirectUri = null) {
         try {
+            const finalRedirectUri = redirectUri || process.env.REDIRECT_URI;
+
             // 1. Get Short-Lived User Token
             const tokenResponse = await axios.get(`${FB_GRAPH_URL}/oauth/access_token`, {
                 params: {
                     client_id: process.env.FACEBOOK_CLIENT_ID,
                     client_secret: process.env.FACEBOOK_CLIENT_SECRET,
-                    redirect_uri: process.env.REDIRECT_URI,
+                    redirect_uri: finalRedirectUri,
                     code: code,
                 },
             });
@@ -122,7 +128,7 @@ class MetaService {
 
             if (pages.length === 0) {
                 console.warn('User has no Facebook pages to connect');
-                return; // No pages to save, but this is not an error
+                throw new Error('No Facebook Pages found. You must create a Facebook Page or explicitly grant access to it during the Facebook Login prompt.');
             }
 
             for (const page of pages) {
