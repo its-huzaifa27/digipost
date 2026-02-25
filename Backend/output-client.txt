@@ -1,0 +1,5 @@
+Found 1 clients:
+- ID: f9fcdda6-0a70-4934-b296-535c48051522
+  User: bee927e9-9770-43af-9cf8-6315676858dc
+  Name: Kuch to tech
+---

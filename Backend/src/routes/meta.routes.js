@@ -35,7 +35,19 @@ router.post("/callback", authenticateToken, async (req, res) => {
 
     if (!client) return res.status(404).json({ error: "Client not found" });
 
-    await metaService.exchangeCodeForToken(code, userId, clientId);
+    const result = await metaService.exchangeCodeForToken(
+      code,
+      userId,
+      clientId,
+    );
+    if (result.connectedPagesCount === 0) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "Successfully authenticated with Facebook, but no business pages were returned. Please click Connect again and ensure you select the specific Pages you wish to use.",
+        });
+    }
     res.json({
       success: true,
       message: "Facebook account connected successfully!",
@@ -59,12 +71,17 @@ router.get("/pages", authenticateToken, async (req, res) => {
   if (!clientId) return res.status(400).json({ error: "clientId is required" });
 
   try {
+    console.log(
+      `[MetaPages] Fetching for clientId=${clientId}, userId=${req.user.id}`,
+    );
     const pages = await PlatformConnection.findAll({
       where: { clientId, userId: req.user.id, isActive: true },
       attributes: ["id", "platform", "pageName", "platformUserId", "pageId"], // Don't return accessToken
     });
+    console.log(`[MetaPages] Found ${pages.length} pages.`);
     res.json(pages);
   } catch (error) {
+    console.error(`[MetaPages] Error:`, error);
     res.status(500).json({ error: "Failed to fetch pages" });
   }
 });

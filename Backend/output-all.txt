@@ -1,0 +1,26 @@
+Found 13 clients globally:
+- Client ID: 7ac9467a-f398-4ed1-aa9d-e567256ab5c2, User: 976d5316-3c3c-4460-abb6-c313ba11426c, Name: Client 2
+- Client ID: 13bbedde-28d6-467c-ac04-f3d33d693f71, User: e6066073-fbe5-4209-922c-99356ffe74fb, Name: Egg Pao
+- Client ID: f4c2bafb-78c4-4715-a8d8-523db7008c50, User: 976d5316-3c3c-4460-abb6-c313ba11426c, Name: Client 1
+- Client ID: e8366129-f32b-4201-99b9-d2880c4cb9bc, User: 976d5316-3c3c-4460-abb6-c313ba11426c, Name: Test Client Script
+- Client ID: f9fcdda6-0a70-4934-b296-535c48051522, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: Kuch to tech
+- Client ID: b2bd8ed1-3970-4092-a595-ef13132d0579, User: 793225bf-73fa-45e6-aca5-27070f7cccbe, Name: Datamatex Tecnologies
+- Client ID: cf0722f6-0926-440f-8267-a16b7a36290b, User: 793225bf-73fa-45e6-aca5-27070f7cccbe, Name: tgfthdfgbv
+- Client ID: 05e4d3ab-73b1-4bef-87e1-17f9d21a84dc, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: datamatex
+- Client ID: c1e7df6c-e891-428d-af9e-7621f9e8715b, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: acme
+- Client ID: 4eaceb0b-1def-4449-a40d-767f33c2a49d, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: datamatex technologies
+- Client ID: 41e25d5f-6492-4b8b-9038-bd6df09a900d, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: sahiwala
+- Client ID: 8fe9f451-df75-4023-8c2c-fc3b1a8baec5, User: bee927e9-9770-43af-9cf8-6315676858dc, Name: dedcs
+- Client ID: 9fd6bddf-6389-45ab-ace1-210e54578e61, User: 036d05b0-f4d9-4322-b30f-cce92efa56d6, Name: Datamatex Technologies
+
+All Platform Connections:
+- Conn ID: 9ef68301-8324-4409-97c7-089096d61eef, Client: null, Platform: facebook, PageName: Ai Auto Post
+- Conn ID: 740e1336-9d3c-45ff-842e-27e9515cc7f2, Client: 13bbedde-28d6-467c-ac04-f3d33d693f71, Platform: facebook, PageName: Test page
+- Conn ID: b240b051-dde0-487d-90b6-e78826450cc5, Client: null, Platform: instagram, PageName: IG: Ai Auto Post
+- Conn ID: b6a19050-03ac-4485-b5bd-be388c928b43, Client: null, Platform: facebook, PageName: Datamatexpost
+- Conn ID: 7486bd3d-c89a-4abc-a0ca-fa490c66b0a6, Client: 7ac9467a-f398-4ed1-aa9d-e567256ab5c2, Platform: facebook, PageName: Ai Auto Post
+- Conn ID: 4252dcf9-152b-4d84-a6ba-e823702dfdf7, Client: 7ac9467a-f398-4ed1-aa9d-e567256ab5c2, Platform: instagram, PageName: IG: Ai Auto Post
+- Conn ID: 933899d5-6d7c-48e2-906d-424fc1dda57b, Client: e8366129-f32b-4201-99b9-d2880c4cb9bc, Platform: facebook, PageName: Test page
+- Conn ID: a74c5555-78d1-4d05-bba6-7232d0f3bc24, Client: f9fcdda6-0a70-4934-b296-535c48051522, Platform: facebook, PageName: Ai Auto Post
+- Conn ID: db6a2351-522a-4a3e-b0ef-14cbc6680da5, Client: f9fcdda6-0a70-4934-b296-535c48051522, Platform: instagram, PageName: IG: Ai Auto Post
+- Conn ID: 69d3d604-bcc0-471d-a606-63363564b8e3, Client: f9fcdda6-0a70-4934-b296-535c48051522, Platform: facebook, PageName: Auto post

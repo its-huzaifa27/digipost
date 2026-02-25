@@ -1,0 +1,51 @@
+Found 10 connections:
+- ID: 9ef68301-8324-4409-97c7-089096d61eef
+  Client: null, User: 976d5316-3c3c-4460-abb6-c313ba11426c
+  Platform: facebook, Page Name: "Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: 740e1336-9d3c-45ff-842e-27e9515cc7f2
+  Client: 13bbedde-28d6-467c-ac04-f3d33d693f71, User: e6066073-fbe5-4209-922c-99356ffe74fb
+  Platform: facebook, Page Name: "Test page", Page ID: 944644032069313
+  Active: true
+---
+- ID: b240b051-dde0-487d-90b6-e78826450cc5
+  Client: null, User: 976d5316-3c3c-4460-abb6-c313ba11426c
+  Platform: instagram, Page Name: "IG: Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: b6a19050-03ac-4485-b5bd-be388c928b43
+  Client: null, User: e6066073-fbe5-4209-922c-99356ffe74fb
+  Platform: facebook, Page Name: "Datamatexpost", Page ID: 969908002872115
+  Active: true
+---
+- ID: 7486bd3d-c89a-4abc-a0ca-fa490c66b0a6
+  Client: 7ac9467a-f398-4ed1-aa9d-e567256ab5c2, User: 976d5316-3c3c-4460-abb6-c313ba11426c
+  Platform: facebook, Page Name: "Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: 4252dcf9-152b-4d84-a6ba-e823702dfdf7
+  Client: 7ac9467a-f398-4ed1-aa9d-e567256ab5c2, User: 976d5316-3c3c-4460-abb6-c313ba11426c
+  Platform: instagram, Page Name: "IG: Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: 933899d5-6d7c-48e2-906d-424fc1dda57b
+  Client: e8366129-f32b-4201-99b9-d2880c4cb9bc, User: 976d5316-3c3c-4460-abb6-c313ba11426c
+  Platform: facebook, Page Name: "Test page", Page ID: 944644032069313
+  Active: true
+---
+- ID: a74c5555-78d1-4d05-bba6-7232d0f3bc24
+  Client: f9fcdda6-0a70-4934-b296-535c48051522, User: bee927e9-9770-43af-9cf8-6315676858dc
+  Platform: facebook, Page Name: "Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: db6a2351-522a-4a3e-b0ef-14cbc6680da5
+  Client: f9fcdda6-0a70-4934-b296-535c48051522, User: bee927e9-9770-43af-9cf8-6315676858dc
+  Platform: instagram, Page Name: "IG: Ai Auto Post", Page ID: 987394001114701
+  Active: true
+---
+- ID: 69d3d604-bcc0-471d-a606-63363564b8e3
+  Client: f9fcdda6-0a70-4934-b296-535c48051522, User: bee927e9-9770-43af-9cf8-6315676858dc
+  Platform: facebook, Page Name: "Auto post", Page ID: 897997256738730
+  Active: true
+---
