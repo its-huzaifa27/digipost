@@ -145,121 +145,108 @@ export const createPost = async (req, res) => {
 
     const results = {};
 
-    // 2. Publish Logic
-    if (scheduledTime) {
-      // BACKEND SCHEDULING:
-      // Cron needs to handle array too. This is a scope creep if we don't update Cron.
-      // But for now, let's just save.
-      console.log("📅 Post Scheduled for later. Saved to DB.");
-      post.status = "scheduled";
-      post.scheduledAt = new Date(scheduledTime * 1000);
-      // We might need to save imageUrls in content or a new column for the Cron job to pick up.
-      // For now, let's stringify into mediaUrl if multiple?
-      // Or just rely on single image for scheduled posts for now if we can't update DB model schema in this step.
-      // Wait, implementation plan didn't mention DB schema change.
-      // User wants "posting multiple images".
-      // If we schedule, we need to persist the list.
-      // Let's act as if we are publishing immediately for verification.
-      // If scheduling is required for carousel, we'd need to update the Post model.
-      // Let's assume immediate publish is the priority.
-    } else {
-      // IMMEDIATE PUBLISH:
-      for (const connectionId of platforms) {
-        // Determine logic
-        const connection = await PlatformConnection.findOne({
-          where: { id: connectionId, userId, clientId, isActive: true },
-        });
+    // 2. Publish Logic (Native Scheduling & Immediate)
+    // We send to Meta regardless of whether it's scheduled or not.
+    // Meta will handle the "holding" if scheduledTime is present.
 
-        if (!connection) {
-          // Legacy fallback (simplified)
-          if (["facebook", "instagram"].includes(connectionId)) {
-            // ... legacy lookup ...
-            const fallbackConnection = await PlatformConnection.findOne({
-              where: {
-                userId,
-                clientId,
-                platform: connectionId,
-                isActive: true,
-              },
-            });
-            if (fallbackConnection) {
-              try {
-                let response;
-                if (fallbackConnection.platform === "facebook") {
-                  response = await metaService.publishToFacebook(
-                    fallbackConnection,
-                    caption,
-                    imageUrls,
-                    scheduledTime,
-                  );
-                } else if (fallbackConnection.platform === "instagram") {
-                  if (imageUrls.length === 0)
-                    throw new Error("Instagram requires an image.");
-                  response = await metaService.publishToInstagram(
-                    fallbackConnection,
-                    caption,
-                    imageUrls,
-                  );
-                }
-                results[connectionId] = {
-                  success: true,
-                  response: response?.data || response,
-                  scheduledTime: null,
-                };
-              } catch (err) {
-                results[connectionId] = { success: false, error: err.message };
+    for (const connectionId of platforms) {
+      // Determine logic
+      const connection = await PlatformConnection.findOne({
+        where: { id: connectionId, userId, clientId, isActive: true },
+      });
+
+      if (!connection) {
+        // Legacy fallback (simplified)
+        if (["facebook", "instagram"].includes(connectionId)) {
+          // ... legacy lookup ...
+          const fallbackConnection = await PlatformConnection.findOne({
+            where: {
+              userId,
+              clientId,
+              platform: connectionId,
+              isActive: true,
+            },
+          });
+          if (fallbackConnection) {
+            try {
+              let response;
+              if (fallbackConnection.platform === "facebook") {
+                response = await metaService.publishToFacebook(
+                  fallbackConnection,
+                  caption,
+                  imageUrls,
+                  scheduledTime,
+                );
+              } else if (fallbackConnection.platform === "instagram") {
+                if (imageUrls.length === 0)
+                  throw new Error("Instagram requires an image.");
+                response = await metaService.publishToInstagram(
+                  fallbackConnection,
+                  caption,
+                  imageUrls,
+                );
               }
+              results[connectionId] = {
+                success: true,
+                response: response?.data || response,
+                scheduledTime: null,
+              };
+            } catch (err) {
+              results[connectionId] = { success: false, error: err.message };
             }
-          } else {
-            results[connectionId] = {
-              success: false,
-              error: "No connected account found.",
-            };
           }
-          continue;
-        }
-
-        const platformId = connection.platform;
-
-        try {
-          let response;
-          if (platformId === "facebook") {
-            // Pass array
-            response = await metaService.publishToFacebook(
-              connection,
-              caption,
-              imageUrls,
-              scheduledTime,
-            );
-          } else if (platformId === "instagram") {
-            if (imageUrls.length === 0)
-              throw new Error("Instagram requires an image.");
-            // Pass array
-            response = await metaService.publishToInstagram(
-              connection,
-              caption,
-              imageUrls,
-            );
-          }
+        } else {
           results[connectionId] = {
-            success: true,
-            response: response?.data || response,
-            scheduledTime: null,
+            success: false,
+            error: "No connected account found.",
           };
-        } catch (err) {
-          const errorDetail = err.response?.data || err.message;
-          console.error(
-            `Publish failed for ${platformId} (${connectionId}):`,
-            errorDetail,
-          );
-          results[connectionId] = { success: false, error: errorDetail };
         }
+        continue;
+      }
+
+      const platformId = connection.platform;
+
+      try {
+        let response;
+        if (platformId === "facebook") {
+          // Pass array
+          response = await metaService.publishToFacebook(
+            connection,
+            caption,
+            imageUrls,
+            scheduledTime,
+          );
+        } else if (platformId === "instagram") {
+          if (imageUrls.length === 0)
+            throw new Error("Instagram requires an image.");
+          // Pass array
+          response = await metaService.publishToInstagram(
+            connection,
+            caption,
+            imageUrls,
+          );
+        }
+        results[connectionId] = {
+          success: true,
+          response: response?.data || response,
+          scheduledTime: null,
+        };
+      } catch (err) {
+        const errorDetail = err.response?.data || err.message;
+        console.error(
+          `Publish failed for ${platformId} (${connectionId}):`,
+          errorDetail,
+        );
+        results[connectionId] = { success: false, error: errorDetail };
       }
     }
 
     // 3. Transient Cleanup
-    if (uploadedFilePaths.length > 0 && !scheduledTime) {
-      console.log("🧹 Cleaning up transient images from Supabase...");
+    // We delete images AFTER giving Meta the URLs. 
+    // IMPORTANT: For NATIVE scheduling, Meta ingests the URL immediately during the API call. 
+    // Once they accept the API call and return an ID, it is safe to delete from our storage.
+    if (uploadedFilePaths.length > 0) {
+      console.log("🧹 Cleaning up transient images from Supabase after giving them to Meta...");
       const { error: deleteError } = await supabase.storage
         .from("uploads")
         .remove(uploadedFilePaths);
@@ -267,29 +254,23 @@ export const createPost = async (req, res) => {
       if (deleteError) {
         console.error("⚠️ Failed to cleanup images:", deleteError);
       } else {
-        console.log("✨ Images deleted from Supabase (Transient Mode).");
+        console.log("✨ Images deleted from Supabase.");
       }
-    } else if (uploadedFilePaths.length > 0 && scheduledTime) {
-      console.log(
-        "📅 Post is scheduled. Keeping image in Supabase to ensure availability.",
-      );
     }
 
     // 4. Update Post Record
     post.results = results;
 
-    // Determine overall status (if not already set to scheduled)
-    if (!scheduledTime) {
-      const failures = Object.values(results).filter((r) => !r.success).length;
-      const successes = Object.values(results).filter((r) => r.success).length;
+    // Determine overall status
+    const failures = Object.values(results).filter((r) => !r.success).length;
+    const successes = Object.values(results).filter((r) => r.success).length;
 
-      if (failures === 0 && successes > 0) {
-        post.status = "published";
-      } else if (successes === 0 && failures > 0) {
-        post.status = "failed";
-      } else {
-        post.status = "partial"; // Mixed
-      }
+    if (failures === 0 && successes > 0) {
+      post.status = scheduledTime ? "natively_scheduled" : "published";
+    } else if (successes === 0 && failures > 0) {
+      post.status = "failed";
+    } else {
+      post.status = "partial"; // Mixed
     }
 
     await post.save();

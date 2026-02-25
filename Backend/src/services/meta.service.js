@@ -282,7 +282,7 @@ class MetaService {
    * Publishes a post to Instagram (2-Step Flow).
    * Supports: Single Video (Reels), Single Image, Carousel (Images/Videos).
    */
-  async publishToInstagram(connection, caption, mediaUrls) {
+  async publishToInstagram(connection, caption, mediaUrls, scheduledTime) {
     try {
       // Normalize input
       const media = Array.isArray(mediaUrls)
@@ -324,6 +324,10 @@ class MetaService {
         const publishParams = new URLSearchParams();
         publishParams.append("creation_id", creationId);
         publishParams.append("access_token", connection.accessToken);
+
+        if (scheduledTime) {
+          publishParams.append("scheduled_publish_time", scheduledTime);
+        }
 
         const publishResponse = await axios.post(
           `${FB_GRAPH_URL}/${connection.igBusinessId}/media_publish`,
@@ -381,6 +385,10 @@ class MetaService {
         const publishParams = new URLSearchParams();
         publishParams.append("creation_id", carouselId);
         publishParams.append("access_token", connection.accessToken);
+
+        if (scheduledTime) {
+          publishParams.append("scheduled_publish_time", scheduledTime);
+        }
 
         return (
           await axios.post(
