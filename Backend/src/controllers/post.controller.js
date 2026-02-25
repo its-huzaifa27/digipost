@@ -380,13 +380,33 @@ export const deletePost = async (req, res) => {
       // So restricting to scheduled is safer.
     }
 
-    // We allow deleting if it's scheduled.
-    // Also, if we implemented 'mediaUrl' as json array for scheduling, we should clean up images?
-    // In createPost, we stored `mediaUrl` (single) and `mediaUrls` (future?).
-    // The previous analysis showed we upload to supabase.
-    // If we delete the post, we should ideally clean up the image from supabase if it's not used elsewhere.
-    // However, for this MVP step, just deleting the record is the primary request.
-    // Cleanup can be a future optimization or handled by a cron job checking for orphaned images.
+    // Extract and delete images from Supabase
+    try {
+      let urlsToDelete = [];
+      if (post.mediaUrls && Array.isArray(post.mediaUrls)) {
+        urlsToDelete = post.mediaUrls;
+      } else if (post.mediaUrl) {
+        urlsToDelete = [post.mediaUrl];
+      }
+
+      if (urlsToDelete.length > 0) {
+        const pathsToDelete = urlsToDelete.map(url => {
+          const parts = url.split('/');
+          return parts[parts.length - 1];
+        });
+
+        console.log(`🧹 Cleaning up ${pathsToDelete.length} orphaned images from Supabase for Cancelled Post ${post.id}...`);
+        const { error } = await supabase.storage.from("uploads").remove(pathsToDelete);
+
+        if (error) {
+          console.error("⚠️ Failed to cleanup orphaned images:", error);
+        } else {
+          console.log("✨ Orphaned images deleted from Supabase successfully.");
+        }
+      }
+    } catch (cleanupError) {
+      console.error("Error during orphaned image cleanup:", cleanupError);
+    }
 
     await post.destroy();
 

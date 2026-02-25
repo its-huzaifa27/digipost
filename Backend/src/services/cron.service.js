@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import Post from "../models/post.model.js";
 import PlatformConnection from "../models/platformConnection.model.js";
 import metaService from "./meta.service.js";
+import { supabase } from "../config/supabase.js";
 
 import Client from "../models/client.model.js";
 
@@ -174,6 +175,38 @@ class CronService {
       post.status = "partial";
     } else {
       post.status = "failed";
+    }
+
+    // Cleanup images from Supabase if published successfully or partially
+    if (post.status === "published" || post.status === "partial") {
+      try {
+        let urlsToDelete = [];
+        if (post.mediaUrls && Array.isArray(post.mediaUrls)) {
+          urlsToDelete = post.mediaUrls;
+        } else if (post.mediaUrl) {
+          urlsToDelete = [post.mediaUrl];
+        }
+
+        if (urlsToDelete.length > 0) {
+          // Extract filename from the Supabase public URL
+          // Format: https://[project].supabase.co/storage/v1/object/public/uploads/[filename]
+          const pathsToDelete = urlsToDelete.map(url => {
+            const parts = url.split('/');
+            return parts[parts.length - 1]; // Get the last part (the filename)
+          });
+
+          console.log(`[Cron] 🧹 Cleaning up ${pathsToDelete.length} images from Supabase for Post ${post.id}...`);
+          const { error } = await supabase.storage.from("uploads").remove(pathsToDelete);
+
+          if (error) {
+            console.error(`[Cron] ⚠️ Failed to cleanup images for Post ${post.id}:`, error);
+          } else {
+            console.log(`[Cron] ✨ Images deleted from Supabase successfully.`);
+          }
+        }
+      } catch (cleanupError) {
+        console.error(`[Cron] Error during image cleanup for Post ${post.id}:`, cleanupError);
+      }
     }
 
     post.results = results;
