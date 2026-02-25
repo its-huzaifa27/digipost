@@ -20,15 +20,17 @@ class MetaService {
     // - instagram_content_publish: To post to IG
     // - public_profile: Basic info
     const scopes = [
+      "pages_show_list",
       "pages_manage_posts",
       "pages_read_engagement",
       "instagram_basic",
       "instagram_manage_insights",
       "instagram_content_publish",
       "public_profile",
+      "business_management",
     ].join(",");
 
-    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&state=random_state_string&scope=${encodeURIComponent(scopes)}`;
+    return `https://www.facebook.com/v19.0/dialog/oauth?client_id=${process.env.FACEBOOK_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.REDIRECT_URI)}&state=random_state_string&scope=${encodeURIComponent(scopes)}&auth_type=rerequest`;
   }
 
   /**
@@ -137,6 +139,7 @@ class MetaService {
       }
 
       // Handle case where user has no pages or response structure is different
+      console.log("RAW FACEBOOK /me/accounts RESPONSE:", JSON.stringify(response.data, null, 2));
       const pages = response.data?.data || [];
 
       if (!Array.isArray(pages)) {
